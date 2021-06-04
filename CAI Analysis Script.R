@@ -1,5 +1,5 @@
 #Establish working directory with target files.
-setwd("C:\\Users\\gjang\\Desktop\\Cushman Materials\\")
+setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script")
 
 #Load relevant packages into library
 library("xlsx")
@@ -11,15 +11,16 @@ library("ggplot2")
 library("car")
 library("dunn.test")
 
-#SWITCHBOARD--Hacky way of getting consistent legend generation, also controls value rounding.
-CLEAN_DATA <- TRUE
-strALLACCESSIONS <-
-  "All Accessions" #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
-strALLDATA <-
-  "Entire"#<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
-roundto <- 3
-STDDEV <- 3
-strACCESSIONLIST <-
+#SWITCHBOARD
+#   Hacky way of getting consistent legend generation, also controls value rounding over the program
+#     and some contant definitions
+
+SWITCHBOARD.CLEAN_DATA <- FALSE
+SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
+SWITCHBOARD.strALLDATA <- "Entire"
+SWITCHBOARD.roundto <- 3
+SWITCHBOARD.STDDEV <- 3
+SWITCHBOARD.strACCESSIONLIST <-
   c(
     "242",
     "246",
@@ -38,20 +39,19 @@ strACCESSIONLIST <-
   )
 
 #List of all plots to be generated.
-GRAPHS_LIST <- tribble(
-  ~ xname,  ~ yname,
+SWITCHBOARD.GRAPHS_LIST <- tribble(
+  ~ xname, ~ yname,
   "width",  "fresh_weight",
-  'height',  'fresh_weight',
-  'diameter',  'fresh_weight',
-  'thickness',  'fresh_weight',
+  'height', 'fresh_weight',
+  'diameter', 'fresh_weight',
+  'thickness', 'fresh_weight',
   'DdivW', 'fresh_weight',
-  'width',  'height',
-  'width',  'diameter',
-  'width',  'thickness',
-  'height',  'diameter',
-  'height',  'thickness',
-  'diameter',  'thickness',
-  
+  'width', 'height',
+  'width', 'diameter',
+  'width', 'thickness',
+  'height', 'diameter',
+  'height', 'thickness',
+  'diameter', 'thickness',
   #  'add_HW', 'thickness',
   #  'add_HW', 'fresh_weight',
   #  'add_HWT', 'fresh_weight',
@@ -92,6 +92,7 @@ speciesIdent <- function(ID) {
 '
 
 #For AIC, etc. parameter calculation
+'
 paraNum <- function(colname) {
   if (colname == "add_HW" | colname == "add_DT") {
     return(2)
@@ -106,9 +107,9 @@ paraNum <- function(colname) {
     return(1)
   }
 }
-
+'
 #Just for easy parameterization in the Generator function
-colnameToLegend <- function(column_text) {
+ACCESSORY.colnameToLegend <- function(column_text) {
   legname <- switch(
     column_text,
     "width" = "Width",
@@ -132,27 +133,25 @@ colnameToLegend <- function(column_text) {
 # if they are more than n = 3 standard deviations away from the mean in a given parameter.
 # However, may have to remove as fresh weight is not normally distributed.
 
-tagBySTDDEV <-
+ACCESSORY.tagBySTDDEV <-
   function(dataset, an_accession) {
-    #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
     blacksite <- vector()
     #print(blacksite)
     dataset_accessionfilter <-
-      filter(dataset, accession == an_accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+      filter(dataset, accession == an_accession)
     #for (columnname in c("H_div_W", "FW_div_W", "FW_div_D")) {
     for (columnname in c("DdivW", "H_div_W")) {
       tempcol <-
-        dataset_accessionfilter[[columnname]] #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+        dataset_accessionfilter[[columnname]]
       meanCol <- mean(tempcol)
       STDCol <- sd(tempcol)
-      bound_upper <- (meanCol + (STDCol * STDDEV))
-      bound_lower <- (meanCol - (STDCol * STDDEV))
+      bound_upper <- (meanCol + (STDCol * SWITCHBOARD.STDDEV))
+      bound_lower <- (meanCol - (STDCol * SWITCHBOARD.STDDEV))
       detention <-
         filter(
-          dataset_accessionfilter,
-          !!as.symbol(columnname) < bound_lower |
+          dataset_accessionfilter,!!as.symbol(columnname) < bound_lower |
             !!as.symbol(columnname) > bound_upper
-        ) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+        )
       blacklist <- as.vector(detention$completeID)
       blacksite <- c(blacksite, blacklist)
       print(c("List:", blacklist))
@@ -163,16 +162,15 @@ tagBySTDDEV <-
   }
 
 #ErrorCleaning--
-ErrorCleaning <- function(dataset) {
+ACCESSORY.ErrorCleaning <- function(dataset) {
   rawblock <- dataset
   #print(nrow(rawblock))
-  if (isTRUE(CLEAN_DATA)) {
-    for (accession in strACCESSIONLIST) {
-      #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+  if (isTRUE(SWITCHBOARD.CLEAN_DATA)) {
+    for (accession in SWITCHBOARD.strACCESSIONLIST) {
       blacksite <-
-        tagBySTDDEV(PARLIER, accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+        ACCESSORY.tagBySTDDEV(PARLIER, accession)
       rawblock <-
-        filter(rawblock,!(rawblock$completeID %in% blacksite))
+        filter(rawblock, !(rawblock$completeID %in% blacksite))
       #print(nrow(rawblock))
     }
     finalPARLIER <- rawblock
@@ -184,45 +182,41 @@ ErrorCleaning <- function(dataset) {
 
 #General Data Subset Function
 
-DataSubset <-
-  function(filter_data = strALLDATA,
-           filter_accession = strALLACCESSIONS) {
-    #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
-    if (filter_data == strALLDATA) {
+ACCESSORY.DataSubset <-
+  function(filter_data = SWITCHBOARD.strALLDATA,
+           filter_accession = SWITCHBOARD.strALLACCESSIONS) {
+    if (filter_data == SWITCHBOARD.strALLDATA) {
       F_data <- finishedPARLIER
     } else {
       F_data <- filter(finishedPARLIER, dataset == filter_data)
     }
-    if (filter_accession == strALLACCESSIONS) {
-      #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    if (filter_accession == SWITCHBOARD.strALLACCESSIONS) {
       F_data_accession <- F_data
     } else {
       F_data_accession <-
-        filter(F_data, accession == filter_accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+        filter(F_data, accession == filter_accession)
     }
     if (nrow(F_data_accession) == 0) {
-      #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
       return(NULL)
     } else {
-      return(F_data_accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+      return(F_data_accession)
     }
   }
 
 #Report Generation
 ###Plotter function which creates labeled figure, regressions
 
-PlotRegress = function(x,
+PIPELINE.PlotRegress = function(x,
                        y,
-                       year = strALLDATA,
-                       accession = strALLACCESSIONS) {
-  #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+                       year = SWITCHBOARD.strALLDATA,
+                       accession = SWITCHBOARD.strALLACCESSIONS) {
   subset <-
-    DataSubset(year, accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    ACCESSORY.DataSubset(year, accession)
   if (is.null(subset) == TRUE) {
     return(NULL)
   }
-  xlab = colnameToLegend(x)
-  ylab = colnameToLegend(y)
+  xlab = ACCESSORY.colnameToLegend(x)
+  ylab = ACCESSORY.colnameToLegend(y)
   subslice = select(subset, x, y)
   x_data = subslice[[x]] #colnameToCol(x, subslice)
   y_data = subslice[[y]] #colnameToCol(y, subslice)
@@ -235,12 +229,11 @@ PlotRegress = function(x,
   rsquare = rsq(doublelogline, type = "sse")
   intercept <- coefficients(doublelogline)[1]
   slope <- coefficients(doublelogline)[2]
-  
   details <-
     paste0("y_0 = ",
-           round(intercept, roundto),
+           round(intercept, SWITCHBOARD.roundto),
            ", m = ",
-           round(slope, roundto),
+           round(slope, SWITCHBOARD.roundto),
            collapse = " ")
   
   csvR2Frame <<-
@@ -249,7 +242,7 @@ PlotRegress = function(x,
             "Dataset" = paste0(year, " Dataset ", accession, collapse = " "),
             "Graph" = paste0(xlab, " vs. ", ylab,
                              collapse = " "),
-            "R2" = round(rsquare, roundto)
+            "R2" = round(rsquare, SWITCHBOARD.roundto)
           ))
   plot(
     x_data,
@@ -260,7 +253,7 @@ PlotRegress = function(x,
     sub = paste0(
       details,
       ", R^2 =",
-      round(rsquare, roundto),
+      round(rsquare, SWITCHBOARD.roundto),
       ", N = ",
       nrow(subslice)
     ),
@@ -271,36 +264,35 @@ PlotRegress = function(x,
   lines(x_data, exp(predict(
     doublelogline, newdata = list(x_data = x_data)
   )) , col = "grey")
-  #print(cat(paste(species, year, x, " vs. ", y, round(rsquare, roundto), collapse = "\t", '\n')))
+  #print(cat(paste(species, year, x, " vs. ", y, round(rsquare, SWITCHBOARD.roundto), collapse = "\t", '\n')))
 }
 
 ###Generator function which generates plots using Plotter over all of the axes combinations
 
-CorrPlotsGenerator <-
+PIPELINE.CorrPlotsGenerator <-
   function(figure_guide,
-           year = strALLDATA,
-           accession = strALLACCESSIONS) {
-    #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+           year = SWITCHBOARD.strALLDATA,
+           accession = SWITCHBOARD.strALLACCESSIONS) {
     for (i in 1:nrow(figure_guide)) {
-      row <- figure_guide[i, ]
-      PlotRegress(row$xname, row$yname, year, accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+      row <- figure_guide[i,]
+      PIPELINE.PlotRegress(row$xname, row$yname, year, accession)
     }
   }
 
-qqGen <- function(accession, column) {
+ACCESSORY.qqGen <- function(accession, column) {
   subsetA <-
-    DataSubset(filter_accession = accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    ACCESSORY.DataSubset(filter_accession = accession)
   title <-
-    paste0(accession, ", ", column) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Desktop\\Cushman Materials\\QQPlot images\\",
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images\\",
       column,
       "--",
       accession,
       ".png"
     )
-  ) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+  )
   #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
   #qqline(subsetA[[column]], col = "steelblue", lwd = 2)
   qqPlot(subsetA[[column]], main = title, envelope = 0.95)
@@ -308,20 +300,20 @@ qqGen <- function(accession, column) {
   dev.off()
 }
 
-qqGenLog <- function(accession, column) {
+ACCESSORY.qqGenLog <- function(accession, column) {
   subsetA <-
-    DataSubset(filter_accession = accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    ACCESSORY.DataSubset(filter_accession = accession)
   title <-
-    paste0(accession, ", ", column) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Desktop\\Cushman Materials\\QQPlot images\\",
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images\\",
       column,
       "--",
       accession,
       "_LOG.png"
     )
-  ) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+  )
   #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
   #qqline(subsetA[[column]], col = "steelblue", lwd = 2)
   qqPlot(log(subsetA[[column]]), main = title, envelope = 0.95)
@@ -329,20 +321,20 @@ qqGenLog <- function(accession, column) {
   dev.off()
 }
 
-qqGenSqrt <- function(accession, column) {
+ACCESSORY.qqGenSqrt <- function(accession, column) {
   subsetA <-
-    DataSubset(filter_accession = accession) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    ACCESSORY.DataSubset(filter_accession = accession)
   title <-
-    paste0(accession, ", ", column) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+    paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Desktop\\Cushman Materials\\QQPlot images\\",
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images\\",
       column,
       "--",
       accession,
       "_SQRT.png"
     )
-  ) #<@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%#@#%>
+  )
   #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
   #qqline(subsetA[[column]], col = "steelblue", lwd = 2)
   qqPlot(sqrt(subsetA[[column]]), main = title, envelope = 0.95)
@@ -350,11 +342,11 @@ qqGenSqrt <- function(accession, column) {
   dev.off()
 }
 
-PlotCompiler <- function() {
-  for (i in c(strALLDATA)) {
+PIPELINE.PlotCompiler <- function() {
+  for (i in c(SWITCHBOARD.strALLDATA)) {
     #..., "Year 1", "Year 2"
     for (j in c(
-      strALLACCESSIONS,
+      SWITCHBOARD.strALLACCESSIONS,
       "242",
       "246",
       "319",
@@ -370,16 +362,16 @@ PlotCompiler <- function() {
       "845",
       "854"
     )) {
-      CorrPlotsGenerator(GRAPHS_LIST, i, j)
+      PIPELINE.CorrPlotsGenerator(SWITCHBOARD.GRAPHS_LIST, i, j)
       
       #print(c("Generating Plots for ", i, j))
     }
   }
-  for (k in strACCESSIONLIST) {
-    for (l in c("fresh_weight", "width", "height", "diameter", "thickness")) {
-      qqGen(k, l)
-      qqGenLog(k, l)
-      qqGenSqrt(k, l)
+  for (accession in SWITCHBOARD.strACCESSIONLIST) {
+    for (measure in c("fresh_weight", "width", "height", "diameter", "thickness")) {
+      ACCESSORY.qqGen(accession, measure)
+      ACCESSORY.qqGenLog(accession, measure)
+      ACCESSORY.qqGenSqrt(accession, measure)
     }
   }
 }
@@ -387,18 +379,18 @@ PlotCompiler <- function() {
 main <- function() {
   title <- paste(
     "Double-Log Cladode Parameter Cross-Relations",
-    ifelse(CLEAN_DATA, " Corrected", ""),
+    ifelse(SWITCHBOARD.CLEAN_DATA, " Corrected", ""),
     ".pdf",
     sep = ""
   )
   pdf(title)
-  PlotCompiler()
+  PIPELINE.PlotCompiler()
   dev.off()
   write.csv(
     csvR2Frame,
     paste(
-      "C:\\Users\\gjang\\Desktop\\Cushman Materials\\R^2 Records",
-      ifelse(CLEAN_DATA, " Corrected", ""),
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\R^2_Records\\Double-Log_Regression_R^2_Values",
+      ifelse(SWITCHBOARD.CLEAN_DATA, "_Corrected", ""),
       ".csv",
       sep = ""
     ),
@@ -421,7 +413,7 @@ parlierOld$dataset <- "Year 1"
 #Merge Y1 and Y2 Parlier Datasets
 PARLIER <- rbind(parlierOld) #, parlierNew)
 
-#Add Error-correction ratios
+#Add Error-correction derived measures
 
 PARLIER <- mutate(PARLIER, H_div_W = height / width)
 PARLIER <- mutate(PARLIER, FW_div_W = fresh_weight / width)
@@ -429,7 +421,7 @@ PARLIER <- mutate(PARLIER, FW_div_D = fresh_weight / diameter)
 PARLIER <- mutate(PARLIER, DdivW = diameter / width)
 
 #Run Error-cleaning Script
-finishedPARLIER <- ErrorCleaning(PARLIER)
+finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER)
 #plot(curve(dweibull(x, shape=2, scale = 1), from=0, to=max(finishedPARLIER$fresh_weight)))
 
 #Functions for creating new columns
