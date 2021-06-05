@@ -414,39 +414,36 @@ main <- function() {
   PARLIER <- mutate(PARLIER, DdivW = diameter / width)
 
   for(doClean in c(FALSE, TRUE)) {
-  
+    
     finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER, doClean)
+    write.csv(
+      finishedPARLIER,
+      paste0(
+        "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\SAS_Datasets\\PARL0", 
+        ifelse(doClean, "C", ""),
+        ".csv"
+      ),
+      row.names = FALSE
+      )
   
-    finishedPARLIER <-
-      mutate(finishedPARLIER, add_HW = (height + width))
-  
-    finishedPARLIER <-
-      mutate(finishedPARLIER, add_HWT = height + width + thickness)
-  
-    finishedPARLIER <-
-      mutate(finishedPARLIER, add_DT = diameter + thickness)
-  
-    finishedPARLIER <-
-      mutate(finishedPARLIER, mul_HWDT = height * width * diameter * thickness)
-  
-  title <- paste(
-    "Double-Log Cladode Parameter Cross-Relations",
-    ifelse(doClean, " Corrected", ""),
-    ".pdf",
-    sep = ""
-  )
-  pdf(title)
-  PIPELINE.PlotCompiler(finishedPARLIER, doClean)
-  dev.off()
-  write.csv(
-    csvR2Frame,
-    paste(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\R^2_Records\\Double-Log_Regression_R^2_Values",
-      ifelse(doClean, "_Corrected", ""),
-      ".csv",
+    title <- paste(
+      "Double-Log Cladode Parameter Cross-Relations",
+      ifelse(doClean, " Corrected", ""),
+      ".pdf",
       sep = ""
-    ),
-    row.names = FALSE
+    )
+    pdf(title)
+    PIPELINE.PlotCompiler(finishedPARLIER, doClean)
+    dev.off()
+    write.csv(
+      csvR2Frame,
+      paste(
+        "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\R^2_Records\\Double-Log_Regression_R^2_Values",
+        ifelse(doClean, "_Corrected", ""),
+        ".csv",
+        sep = ""
+      ),
+      row.names = FALSE
   )
   }
 }
