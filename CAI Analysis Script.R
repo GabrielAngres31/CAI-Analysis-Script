@@ -149,7 +149,7 @@ ACCESSORY.tagBySTDDEV <-
       bound_lower <- (meanCol - (STDCol * SWITCHBOARD.STDDEV))
       detention <-
         filter(
-          dataset_accessionfilter,!!as.symbol(columnname) < bound_lower |
+          dataset_accessionfilter, !!as.symbol(columnname) < bound_lower |
             !!as.symbol(columnname) > bound_upper
         )
       blacklist <- as.vector(detention$completeID)
@@ -162,33 +162,35 @@ ACCESSORY.tagBySTDDEV <-
   }
 
 #ErrorCleaning--
-ACCESSORY.ErrorCleaning <- function(dataset) {
+ACCESSORY.ErrorCleaning <- function(dataset, doClean) {
   rawblock <- dataset
   #print(nrow(rawblock))
-  if (isTRUE(SWITCHBOARD.CLEAN_DATA)) {
+  if (isTRUE(doClean)) {
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       blacksite <-
-        ACCESSORY.tagBySTDDEV(PARLIER, accession)
+        ACCESSORY.tagBySTDDEV(dataset, accession)
       rawblock <-
         filter(rawblock, !(rawblock$completeID %in% blacksite))
       #print(nrow(rawblock))
     }
-    finalPARLIER <- rawblock
-    return(finalPARLIER)
+    finalDataset <- rawblock
+    return(finalDataset)
   } else {
-    return(PARLIER)
+    return(dataset)
   }
 }
 
 #General Data Subset Function
 
 ACCESSORY.DataSubset <-
-  function(filter_data = SWITCHBOARD.strALLDATA,
-           filter_accession = SWITCHBOARD.strALLACCESSIONS) {
+  function(filter_data,
+           filter_accession,
+           dataset_in) {
     if (filter_data == SWITCHBOARD.strALLDATA) {
-      F_data <- finishedPARLIER
+      F_data <- dataset_in
     } else {
-      F_data <- filter(finishedPARLIER, dataset == filter_data)
+      print(dataset_in)
+      F_data <- filter(dataset_in, dataset == filter_data)
     }
     if (filter_accession == SWITCHBOARD.strALLACCESSIONS) {
       F_data_accession <- F_data
@@ -209,9 +211,10 @@ ACCESSORY.DataSubset <-
 PIPELINE.PlotRegress = function(x,
                        y,
                        year = SWITCHBOARD.strALLDATA,
-                       accession = SWITCHBOARD.strALLACCESSIONS) {
+                       accession = SWITCHBOARD.strALLACCESSIONS,
+                       dataset_in) {
   subset <-
-    ACCESSORY.DataSubset(year, accession)
+    ACCESSORY.DataSubset(year, accession, dataset_in)
   if (is.null(subset) == TRUE) {
     return(NULL)
   }
@@ -272,24 +275,28 @@ PIPELINE.PlotRegress = function(x,
 PIPELINE.CorrPlotsGenerator <-
   function(figure_guide,
            year = SWITCHBOARD.strALLDATA,
-           accession = SWITCHBOARD.strALLACCESSIONS) {
+           accession = SWITCHBOARD.strALLACCESSIONS,
+           dataset_in) {
     for (i in 1:nrow(figure_guide)) {
       row <- figure_guide[i,]
-      PIPELINE.PlotRegress(row$xname, row$yname, year, accession)
+      PIPELINE.PlotRegress(row$xname, row$yname, year, accession, dataset_in)
     }
   }
 
-ACCESSORY.qqGen <- function(accession, column) {
+ACCESSORY.qqGen <- function(accession, column, dataset_in, doClean) {
   subsetA <-
-    ACCESSORY.DataSubset(filter_accession = accession)
+    ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in = dataset_in)
   title <-
     paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images\\",
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images",
+      ifelse(doClean, "_Corrected", ""),
+      "\\",
       column,
       "--",
       accession,
+      ifelse(doClean, "_Corrected", ""),
       ".png"
     )
   )
@@ -300,18 +307,22 @@ ACCESSORY.qqGen <- function(accession, column) {
   dev.off()
 }
 
-ACCESSORY.qqGenLog <- function(accession, column) {
+ACCESSORY.qqGenLog <- function(accession, column, dataset_in, doClean) {
   subsetA <-
-    ACCESSORY.DataSubset(filter_accession = accession)
+    ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in = dataset_in)
   title <-
     paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images\\",
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images",
+      ifelse(doClean, "_Corrected", ""),
+      "\\",
       column,
       "--",
       accession,
-      "_LOG.png"
+      "_LOG",
+      ifelse(doClean, "_Corrected", ""),
+      ".png"
     )
   )
   #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
@@ -321,18 +332,22 @@ ACCESSORY.qqGenLog <- function(accession, column) {
   dev.off()
 }
 
-ACCESSORY.qqGenSqrt <- function(accession, column) {
+ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, doClean) {
   subsetA <-
-    ACCESSORY.DataSubset(filter_accession = accession)
+    ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in)
   title <-
     paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images\\",
+      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images",
+      ifelse(doClean, "_Corrected", ""),
+      "\\",
       column,
       "--",
       accession,
-      "_SQRT.png"
+      "_SQRT", 
+      ifelse(doClean, "_Corrected", ""),
+      ".png"
     )
   )
   #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
@@ -342,10 +357,10 @@ ACCESSORY.qqGenSqrt <- function(accession, column) {
   dev.off()
 }
 
-PIPELINE.PlotCompiler <- function() {
-  for (i in c(SWITCHBOARD.strALLDATA)) {
+PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
+  for (dataset in c(SWITCHBOARD.strALLDATA)) {
     #..., "Year 1", "Year 2"
-    for (j in c(
+    for (accession in c(
       SWITCHBOARD.strALLACCESSIONS,
       "242",
       "246",
@@ -362,84 +377,88 @@ PIPELINE.PlotCompiler <- function() {
       "845",
       "854"
     )) {
-      PIPELINE.CorrPlotsGenerator(SWITCHBOARD.GRAPHS_LIST, i, j)
+      PIPELINE.CorrPlotsGenerator(SWITCHBOARD.GRAPHS_LIST, dataset, accession, dataset_in)
       
       #print(c("Generating Plots for ", i, j))
     }
   }
+  
   for (accession in SWITCHBOARD.strACCESSIONLIST) {
     for (measure in c("fresh_weight", "width", "height", "diameter", "thickness")) {
-      ACCESSORY.qqGen(accession, measure)
-      ACCESSORY.qqGenLog(accession, measure)
-      ACCESSORY.qqGenSqrt(accession, measure)
+      ACCESSORY.qqGen(accession, measure, dataset_in, doClean)
+      ACCESSORY.qqGenLog(accession, measure, dataset_in, doClean)
+      ACCESSORY.qqGenSqrt(accession, measure, dataset_in, doClean)
     }
   }
 }
 
 main <- function() {
+  
+  #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  #-----------------------------------------------
+  #_______________________________________________
+  #DATASET MANIPULATION, FUNCTION EXECUTION SEGMENT
+  
+  #Load Parlier csv files into memory
+  PARLIER <- read.csv(file = 'PARL0_04262021.csv')
+  
+  #Data compatibility modifications
+  PARLIER <- mutate(PARLIER, pad_id = 1)
+  PARLIER$dataset <- "Year 1"
+  
+  #Add Error-correction derived measures
+  
+  PARLIER <- mutate(PARLIER, H_div_W = height / width)
+  PARLIER <- mutate(PARLIER, FW_div_W = fresh_weight / width)
+  PARLIER <- mutate(PARLIER, FW_div_D = fresh_weight / diameter)
+  PARLIER <- mutate(PARLIER, DdivW = diameter / width)
+
+  for(doClean in c(FALSE, TRUE)) {
+  
+    finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER, doClean)
+  
+    finishedPARLIER <-
+      mutate(finishedPARLIER, add_HW = (height + width))
+  
+    finishedPARLIER <-
+      mutate(finishedPARLIER, add_HWT = height + width + thickness)
+  
+    finishedPARLIER <-
+      mutate(finishedPARLIER, add_DT = diameter + thickness)
+  
+    finishedPARLIER <-
+      mutate(finishedPARLIER, mul_HWDT = height * width * diameter * thickness)
+  
   title <- paste(
     "Double-Log Cladode Parameter Cross-Relations",
-    ifelse(SWITCHBOARD.CLEAN_DATA, " Corrected", ""),
+    ifelse(doClean, " Corrected", ""),
     ".pdf",
     sep = ""
   )
   pdf(title)
-  PIPELINE.PlotCompiler()
+  PIPELINE.PlotCompiler(finishedPARLIER, doClean)
   dev.off()
   write.csv(
     csvR2Frame,
     paste(
       "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\R^2_Records\\Double-Log_Regression_R^2_Values",
-      ifelse(SWITCHBOARD.CLEAN_DATA, "_Corrected", ""),
+      ifelse(doClean, "_Corrected", ""),
       ".csv",
       sep = ""
     ),
     row.names = FALSE
   )
+  }
 }
 
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#-----------------------------------------------
-#_______________________________________________
-#DATASET MANIPULATION, FUNCTION EXECUTION SEGMENT
 
-#Load Parlier csv files into memory
-parlierOld <- read.csv(file = 'PARL0_04262021.csv')
-
-#Data compatibility modifications
-parlierOld <- mutate(parlierOld, pad_id = 1)
-parlierOld$dataset <- "Year 1"
-
-#Merge Y1 and Y2 Parlier Datasets
-PARLIER <- rbind(parlierOld) #, parlierNew)
-
-#Add Error-correction derived measures
-
-PARLIER <- mutate(PARLIER, H_div_W = height / width)
-PARLIER <- mutate(PARLIER, FW_div_W = fresh_weight / width)
-PARLIER <- mutate(PARLIER, FW_div_D = fresh_weight / diameter)
-PARLIER <- mutate(PARLIER, DdivW = diameter / width)
 
 #Run Error-cleaning Script
-finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER)
+
 #plot(curve(dweibull(x, shape=2, scale = 1), from=0, to=max(finishedPARLIER$fresh_weight)))
 
 #Functions for creating new columns
 
 ###Create Function Measures
-finishedPARLIER <-
-  mutate(finishedPARLIER, add_HW = (height + width))
-
-finishedPARLIER <-
-  mutate(finishedPARLIER, add_HWT = height + width + thickness)
-
-finishedPARLIER <-
-  mutate(finishedPARLIER, add_DT = diameter + thickness)
-
-finishedPARLIER <-
-  mutate(finishedPARLIER, mul_HWDT = height * width * diameter * thickness)
-
-
-
 
 main()
