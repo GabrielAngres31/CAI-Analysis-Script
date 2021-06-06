@@ -425,6 +425,15 @@ main <- function() {
       ),
       row.names = FALSE
       )
+    write.csv(
+      finishedPARLIER,
+      paste0(
+        "C:\\Users\\gjang\\Documents\\SASUniversityEdition\\myfolders\\PARL0", 
+        ifelse(doClean, "C", ""),
+        ".csv"
+      ),
+      row.names = FALSE
+    )
   
     title <- paste(
       "Double-Log Cladode Parameter Cross-Relations",
