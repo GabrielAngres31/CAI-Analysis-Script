@@ -37,6 +37,19 @@ SWITCHBOARD.strACCESSIONLIST <-
     "845",
     "854"
   )
+SWITCHBOARD.strQQMEASURESLIST <-
+  c(
+    "fresh_weight", 
+    "width",
+    "height",
+    "diameter",
+    "thickness",
+    "D_div_W",
+    "FW_div_H",
+    "FW_div_W",
+    "FW_div_D",
+    "FW_div_T"
+  )
 
 #List of all plots to be generated.
 SWITCHBOARD.GRAPHS_LIST <- tribble(
@@ -45,7 +58,7 @@ SWITCHBOARD.GRAPHS_LIST <- tribble(
   'height', 'fresh_weight',
   'diameter', 'fresh_weight',
   'thickness', 'fresh_weight',
-  'DdivW', 'fresh_weight',
+  'D_div_W', 'fresh_weight',
   'width', 'height',
   'width', 'diameter',
   'width', 'thickness',
@@ -117,7 +130,11 @@ ACCESSORY.colnameToLegend <- function(column_text) {
     "diameter" = "Diameter",
     "thickness" = "Thickness",
     "fresh_weight" = "Fresh Weight",
-    'DdivW' = "Diameter / Width"
+    'D_div_W' = "Diameter / Width",
+    'FW_div_H'='Fresh Weight / Height',
+    'FW_div_W'='Fresh Weight / Width',
+    'FW_div_D'='Fresh Weight / Diameter',
+    'FW_div_T'='Fresh Weight / T'
   )
   #    "add_HW" = "Height + Width",
   #    "add_HWT" = "Height + Width + Thickness",
@@ -140,7 +157,7 @@ ACCESSORY.tagBySTDDEV <-
     dataset_accessionfilter <-
       filter(dataset, accession == an_accession)
     #for (columnname in c("H_div_W", "FW_div_W", "FW_div_D")) {
-    for (columnname in c("DdivW", "H_div_W")) {
+    for (columnname in c("D_div_W", "H_div_W")) {
       tempcol <-
         dataset_accessionfilter[[columnname]]
       meanCol <- mean(tempcol)
@@ -384,7 +401,7 @@ PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
   }
   
   for (accession in SWITCHBOARD.strACCESSIONLIST) {
-    for (measure in c("fresh_weight", "width", "height", "diameter", "thickness")) {
+    for (measure in SWITCHBOARD.strQQMEASURESLIST) {
       ACCESSORY.qqGen(accession, measure, dataset_in, doClean)
       ACCESSORY.qqGenLog(accession, measure, dataset_in, doClean)
       ACCESSORY.qqGenSqrt(accession, measure, dataset_in, doClean)
@@ -411,7 +428,9 @@ main <- function() {
   PARLIER <- mutate(PARLIER, H_div_W = height / width)
   PARLIER <- mutate(PARLIER, FW_div_W = fresh_weight / width)
   PARLIER <- mutate(PARLIER, FW_div_D = fresh_weight / diameter)
-  PARLIER <- mutate(PARLIER, DdivW = diameter / width)
+  PARLIER <- mutate(PARLIER, FW_div_H = fresh_weight / height)
+  PARLIER <- mutate(PARLIER, FW_div_T = fresh_weight / thickness)
+  PARLIER <- mutate(PARLIER, D_div_W = diameter / width)
 
   for(doClean in c(FALSE, TRUE)) {
     
