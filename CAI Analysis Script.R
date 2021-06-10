@@ -403,8 +403,8 @@ PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
   for (accession in SWITCHBOARD.strACCESSIONLIST) {
     for (measure in SWITCHBOARD.strQQMEASURESLIST) {
       ACCESSORY.qqGen(accession, measure, dataset_in, doClean)
-      ACCESSORY.qqGenLog(accession, measure, dataset_in, doClean)
-      ACCESSORY.qqGenSqrt(accession, measure, dataset_in, doClean)
+      #ACCESSORY.qqGenLog(accession, measure, dataset_in, doClean)
+      #ACCESSORY.qqGenSqrt(accession, measure, dataset_in, doClean)
     }
   }
 }
