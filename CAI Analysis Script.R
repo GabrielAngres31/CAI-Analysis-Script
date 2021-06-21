@@ -10,16 +10,21 @@ library("qwraps2")
 library("ggplot2")
 library("car")
 library("dunn.test")
+library("Rcmdr")
 
 #SWITCHBOARD
 #   Hacky way of getting consistent legend generation, also controls value rounding over the program
-#     and some contant definitions
+#     and some constant definitions
 
 SWITCHBOARD.CLEAN_DATA <- FALSE
 SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
 SWITCHBOARD.strALLDATA <- "Entire"
 SWITCHBOARD.roundto <- 3
 SWITCHBOARD.STDDEV <- 3
+SWITCHBOARD.strCLEANONLIST <- 
+  c(
+    "D_div_W"
+    )
 SWITCHBOARD.strACCESSIONLIST <-
   c(
     "242",
@@ -51,7 +56,7 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "FW_div_T"
   )
 
-#List of all plots to be generated.
+#List of all plots  to be generated.
 SWITCHBOARD.GRAPHS_LIST <- tribble(
   ~ xname, ~ yname,
   "width",  "fresh_weight",
@@ -81,46 +86,6 @@ errorPads <-
 
 #FUNCTION DEFINITIONS
 
-'
-speciesIdent <- function(ID) {
-  species_pass_value = switch(
-    substr(ID, 6, 8),
-    "580" = "O. ficus-indica",
-    "854" = "O. ficus-indica",
-    "584" = "O. ficus-indica",
-    "585" = "O. ficus-indica",
-    "572" = "O. ficus-indica",
-    "325" = "O. crassa",
-    "845" = "O. ficus-indica",
-    "246" = "O. ficus-indica",
-    "326" = "O. ficus-indica",
-    "390" = "O. robusta",
-    "242" = "N. cochinillifera",
-    "582" = "N. cochinillifera",
-    "319" = "N. cochinillifera",
-    "839" = "O. undulata"
-  )
-  return(species_pass_value)
-}
-'
-
-#For AIC, etc. parameter calculation
-'
-paraNum <- function(colname) {
-  if (colname == "add_HW" | colname == "add_DT") {
-    return(2)
-  }
-  else if (colname == ("add_HWT")) {
-    return(3)
-  }
-  else if (colname == ("mul_HWDT")) {
-    return(4)
-  }
-  else {
-    return(1)
-  }
-}
-'
 #Just for easy parameterization in the Generator function
 ACCESSORY.colnameToLegend <- function(column_text) {
   legname <- switch(
@@ -136,12 +101,6 @@ ACCESSORY.colnameToLegend <- function(column_text) {
     'FW_div_D'='Fresh Weight / Diameter',
     'FW_div_T'='Fresh Weight / T'
   )
-  #    "add_HW" = "Height + Width",
-  #    "add_HWT" = "Height + Width + Thickness",
-  #    "add_DT" = "Diameter + Thickness",
-  #    "mul_HWDT" = "Height * Weight * Diameter * Thickness",
-  #    "fresh_weight" = "Fresh Weight"
-  #  )
   return(legname)
 }
 
@@ -157,7 +116,7 @@ ACCESSORY.tagBySTDDEV <-
     dataset_accessionfilter <-
       filter(dataset, accession == an_accession)
     #for (columnname in c("H_div_W", "FW_div_W", "FW_div_D")) {
-    for (columnname in c("D_div_W", "H_div_W")) {
+    for (columnname in SWITCHBOARD.strCLEANONLIST) {
       tempcol <-
         dataset_accessionfilter[[columnname]]
       meanCol <- mean(tempcol)
@@ -181,14 +140,12 @@ ACCESSORY.tagBySTDDEV <-
 #ErrorCleaning--
 ACCESSORY.ErrorCleaning <- function(dataset, doClean) {
   rawblock <- dataset
-  #print(nrow(rawblock))
   if (isTRUE(doClean)) {
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       blacksite <-
         ACCESSORY.tagBySTDDEV(dataset, accession)
       rawblock <-
         filter(rawblock, !(rawblock$completeID %in% blacksite))
-      #print(nrow(rawblock))
     }
     finalDataset <- rawblock
     return(finalDataset)
@@ -243,9 +200,7 @@ PIPELINE.PlotRegress = function(x,
   
   #Double logistic plot currently the only one implemented.
   doublelogline = lm(log(y_data) ~ log(x_data), data = subslice)
-  #print(c(species, xlab, " vs. ", ylab))
-  #print(AIC(plotline, k = (2+paraNum(x))))
-  #print("-----------------------")
+  
   rsquare = rsq(doublelogline, type = "sse")
   intercept <- coefficients(doublelogline)[1]
   slope <- coefficients(doublelogline)[2]
@@ -284,7 +239,6 @@ PIPELINE.PlotRegress = function(x,
   lines(x_data, exp(predict(
     doublelogline, newdata = list(x_data = x_data)
   )) , col = "grey")
-  #print(cat(paste(species, year, x, " vs. ", y, round(rsquare, SWITCHBOARD.roundto), collapse = "\t", '\n')))
 }
 
 ###Generator function which generates plots using Plotter over all of the axes combinations
@@ -317,10 +271,7 @@ ACCESSORY.qqGen <- function(accession, column, dataset_in, doClean) {
       ".png"
     )
   )
-  #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
-  #qqline(subsetA[[column]], col = "steelblue", lwd = 2)
   qqPlot(subsetA[[column]], main = title, envelope = 0.95)
-  #ggsave(paste0("C:\\Users\\gjang\\Desktop\\Cushman Materials\\QQPlot images\\", accession, "--", column))
   dev.off()
 }
 
@@ -342,10 +293,7 @@ ACCESSORY.qqGenLog <- function(accession, column, dataset_in, doClean) {
       ".png"
     )
   )
-  #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
-  #qqline(subsetA[[column]], col = "steelblue", lwd = 2)
   qqPlot(log(subsetA[[column]]), main = title, envelope = 0.95)
-  #ggsave(paste0("C:\\Users\\gjang\\Desktop\\Cushman Materials\\QQPlot images\\", accession, "--", column))
   dev.off()
 }
 
@@ -367,16 +315,12 @@ ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, doCl
       ".png"
     )
   )
-  #qqnorm(subsetA[[column]], pch = 1, frame = TRUE, main = title)
-  #qqline(subsetA[[column]], col = "steelblue", lwd = 2)
   qqPlot(sqrt(subsetA[[column]]), main = title, envelope = 0.95)
-  #ggsave(paste0("C:\\Users\\gjang\\Desktop\\Cushman Materials\\QQPlot images\\", accession, "--", column))
   dev.off()
 }
 
 PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
   for (dataset in c(SWITCHBOARD.strALLDATA)) {
-    #..., "Year 1", "Year 2"
     for (accession in c(
       SWITCHBOARD.strALLACCESSIONS,
       "242",
@@ -395,16 +339,12 @@ PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
       "854"
     )) {
       PIPELINE.CorrPlotsGenerator(SWITCHBOARD.GRAPHS_LIST, dataset, accession, dataset_in)
-      
-      #print(c("Generating Plots for ", i, j))
     }
   }
   
   for (accession in SWITCHBOARD.strACCESSIONLIST) {
     for (measure in SWITCHBOARD.strQQMEASURESLIST) {
       ACCESSORY.qqGen(accession, measure, dataset_in, doClean)
-      #ACCESSORY.qqGenLog(accession, measure, dataset_in, doClean)
-      #ACCESSORY.qqGenSqrt(accession, measure, dataset_in, doClean)
     }
   }
 }
@@ -431,10 +371,13 @@ main <- function() {
   PARLIER <- mutate(PARLIER, FW_div_H = fresh_weight / height)
   PARLIER <- mutate(PARLIER, FW_div_T = fresh_weight / thickness)
   PARLIER <- mutate(PARLIER, D_div_W = diameter / width)
+  
+  print(PARLIER)
 
   for(doClean in c(FALSE, TRUE)) {
     
     finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER, doClean)
+    
     write.csv(
       finishedPARLIER,
       paste0(
@@ -475,15 +418,5 @@ main <- function() {
   )
   }
 }
-
-
-
-#Run Error-cleaning Script
-
-#plot(curve(dweibull(x, shape=2, scale = 1), from=0, to=max(finishedPARLIER$fresh_weight)))
-
-#Functions for creating new columns
-
-###Create Function Measures
 
 main()

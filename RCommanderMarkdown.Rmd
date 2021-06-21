@@ -1,0 +1,58 @@
+<!-- R Commander Markdown Template -->
+
+Replace with Main Title
+=======================
+
+### Your Name
+
+### `r as.character(Sys.Date())`
+
+```{r echo=FALSE}
+# include this code chunk as-is to set options
+knitr::opts_chunk$set(comment=NA, prompt=TRUE, out.width=750, fig.height=8, fig.width=8)
+library(Rcmdr)
+library(car)
+library(RcmdrMisc)
+```
+
+
+```{r echo=FALSE}
+# include this code chunk as-is to enable 3D graphs
+library(rgl)
+knitr::knit_hooks$set(webgl = hook_webgl)
+```
+
+
+```{r}
+
+```{r}
+
+```{r}
+Dataset <- 
+  read.table("C:/Users/gjang/Documents/GitHub/CAI-Analysis-Script/PARL0_04262021.csv",
+   header=TRUE, stringsAsFactors=TRUE, sep=",", na.strings="NA", dec=".", 
+  strip.white=TRUE)
+```
+
+```{r}
+Dataset <- within(Dataset, {
+  accession <- as.factor(accession)
+})
+```
+
+```{r}
+Boxplot(fresh_weight~accession, data=Dataset, id=list(method="y"))
+```
+
+```{r}
+Dataset$D_div_W <- with(Dataset, diameter/ width)
+```
+
+```{r}
+Boxplot(D_div_W~accession, data=Dataset, id=list(method="y"))
+```
+
+```{r}
+Boxplot(D_div_W~accession, data=Dataset, id=list(method="y"))
+```
+
