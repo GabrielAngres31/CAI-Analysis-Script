@@ -20,6 +20,7 @@ library("Rcmdr")
 
 SWITCHBOARD.CLEAN_DATA <- FALSE
 SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
+SWITCHBOARD.DIRECTORY <- "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
 SWITCHBOARD.strALLDATA <- "Entire"
 SWITCHBOARD.roundto <- 3
 SWITCHBOARD.STDDEV <- 3
@@ -263,7 +264,8 @@ ACCESSORY.qqGen <- function(accession, column, dataset_in, doClean) {
     paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images",
+      SWITCHBOARD.DIRECTORY,
+      "QQPlot_Images",
       ifelse(doClean, "_Corrected", ""),
       "\\",
       column,
@@ -284,7 +286,8 @@ ACCESSORY.qqGenLog <- function(accession, column, dataset_in, doClean) {
     paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images",
+      SWITCHBOARD.DIRECTORY,
+      "QQPlot_Images",
       ifelse(doClean, "_Corrected", ""),
       "\\",
       column,
@@ -306,7 +309,8 @@ ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, doCl
     paste0(accession, ", ", column)
   png(
     paste0(
-      "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\QQPlot_Images",
+      SWITCHBOARD.DIRECTORY,
+      "QQPlot_Images",
       ifelse(doClean, "_Corrected", ""),
       "\\",
       column,
@@ -383,7 +387,8 @@ main <- function() {
     write.csv(
       finishedPARLIER,
       paste0(
-        "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\SAS_Datasets\\PARL0", 
+        SWITCHBOARD.DIRECTORY,
+        "SAS_Datasets\\PARL0", 
         ifelse(doClean, "C", ""),
         ".csv"
       ),
@@ -411,7 +416,8 @@ main <- function() {
     write.csv(
       csvR2Frame,
       paste(
-        "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\R^2_Records\\Double-Log_Regression_R^2_Values",
+        SWITCHBOARD.DIRECTORY,
+        "R^2_Records\\Double-Log_Regression_R^2_Values",
         ifelse(doClean, "_Corrected", ""),
         ".csv",
         sep = ""
