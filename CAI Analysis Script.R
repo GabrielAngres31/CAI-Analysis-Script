@@ -189,7 +189,9 @@ PIPELINE.PlotRegress = function(x,
                        y,
                        year = SWITCHBOARD.strALLDATA,
                        accession = SWITCHBOARD.strALLACCESSIONS,
-                       dataset_in) {
+                       dataset_in, 
+                       graphmode) 
+  {
   subset <-
     ACCESSORY.DataSubset(year, accession, dataset_in)
   if (is.null(subset) == TRUE) {
@@ -202,11 +204,15 @@ PIPELINE.PlotRegress = function(x,
   y_data = subslice[[y]] #colnameToCol(y, subslice)
   
   #Double logistic plot currently the only one implemented.
-  doublelogline = lm(log(y_data) ~ log(x_data), data = subslice)
+  if (graphmode == "Double Log") {
+    targetline = lm(log(y_data) ~ log(x_data), data = subslice)
+  } else if (graphmode == "Double Linear") {
+    targetline = lm(y_data ~ x_data, data = subslice)
+  }
   
-  rsquare = rsq(doublelogline, type = "sse")
-  intercept <- coefficients(doublelogline)[1]
-  slope <- coefficients(doublelogline)[2]
+  rsquare = rsq(targetline, type = "sse")
+  intercept <- coefficients(targetline)[1]
+  slope <- coefficients(targetline)[2]
   details <-
     paste0("y_0 = ",
            round(intercept, SWITCHBOARD.roundto),
@@ -220,13 +226,14 @@ PIPELINE.PlotRegress = function(x,
             "Dataset" = paste0(year, " Dataset ", accession, collapse = " "),
             "Graph" = paste0(xlab, " vs. ", ylab,
                              collapse = " "),
-            "R2" = round(rsquare, SWITCHBOARD.roundto)
+            "R2" = round(rsquare, SWITCHBOARD.roundto),
+            "Mode" = graphmode
           ))
   plot(
     x_data,
     y_data,
     type = "p",
-    log = "xy",
+    log = ifelse(graphmode == "Double Log", "xy", ""),
     cex = 0.8,
     sub = paste0(
       details,
@@ -235,13 +242,15 @@ PIPELINE.PlotRegress = function(x,
       ", N = ",
       nrow(subslice)
     ),
-    main = paste0(xlab, " vs. ", ylab, "\n", year, " Dataset, ", accession, collapse = " "),
+    main = paste0(xlab, " vs. ", ylab, "\n", year, " Dataset, ", accession, "Mode - ", graphmode, collapse = " "),
     xlab = xlab,
     ylab = ylab
   )
-  lines(x_data, exp(predict(
-    doublelogline, newdata = list(x_data = x_data)
-  )) , col = "grey")
+  if (graphmode == "Double Log") {
+    lines(x_data, exp(predict(targetline, newdata = list(x_data = x_data))) , col = "grey")
+  } else if (graphmode == "Double Linear") {
+    lines(x_data, predict(targetline, newdata = list(x_data = x_data)) , col = "grey")
+  }
 }
 
 ###Generator function which generates plots using Plotter over all of the axes combinations
@@ -252,8 +261,10 @@ PIPELINE.CorrPlotsGenerator <-
            accession = SWITCHBOARD.strALLACCESSIONS,
            dataset_in) {
     for (i in 1:nrow(figure_guide)) {
-      row <- figure_guide[i,]
-      PIPELINE.PlotRegress(row$xname, row$yname, year, accession, dataset_in)
+       for (graphmode in c("Double Log", "Double Linear")) {
+        row <- figure_guide[i,]
+        PIPELINE.PlotRegress(row$xname, row$yname, year, accession, dataset_in, graphmode)
+      }
     }
   }
 
@@ -361,8 +372,7 @@ main <- function() {
   #-----------------------------------------------
   #_______________________________________________
   #DATASET MANIPULATION, FUNCTION EXECUTION SEGMENT
-  
-  #Load Parlier csv files into memory
+    #Load Parlier csv files into memory
   PARLIER <- read.csv(file = 'PARL0_04262021.csv')
   
   #Data compatibility modifications
