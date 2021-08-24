@@ -18,12 +18,11 @@ library("Rcmdr")
 #   Hacky way of getting consistent legend generation, also controls value rounding over the program
 #     and some constant definitions
 
-SWITCHBOARD.CLEAN_DATA <- FALSE
+
 SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
 SWITCHBOARD.DIRECTORY <- "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
 SWITCHBOARD.strALLDATA <- "Entire"
 SWITCHBOARD.roundto <- 3
-SWITCHBOARD.STDDEV <- 3
 SWITCHBOARD.strCLEANONLIST <- 
   c(
     "D_div_W"
@@ -57,6 +56,11 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "FW_div_W",
     "FW_div_D",
     "FW_div_T"
+  )
+SWITCHBOARD.Percentiles <- list(
+  c(FALSE, 10000,  "All"), 
+  c( TRUE,  1.645, "95th"), 
+  c( TRUE,  1.282, "90th")
   )
 
 #List of all plots  to be generated.
@@ -113,7 +117,7 @@ ACCESSORY.colnameToLegend <- function(column_text) {
 # However, may have to remove as fresh weight is not normally distributed.
 
 ACCESSORY.tagBySTDDEV <-
-  function(dataset, an_accession) {
+  function(dataset, an_accession, threshold) {
     blacksite <- vector()
     #print(blacksite)
     dataset_accessionfilter <-
@@ -124,8 +128,8 @@ ACCESSORY.tagBySTDDEV <-
         dataset_accessionfilter[[columnname]]
       meanCol <- mean(tempcol)
       STDCol <- sd(tempcol)
-      bound_upper <- (meanCol + (STDCol * SWITCHBOARD.STDDEV))
-      bound_lower <- (meanCol - (STDCol * SWITCHBOARD.STDDEV))
+      bound_upper <- (meanCol + (STDCol * threshold))
+      bound_lower <- (meanCol - (STDCol * threshold))
       detention <-
         filter(
           dataset_accessionfilter, !!as.symbol(columnname) < bound_lower |
@@ -143,10 +147,10 @@ ACCESSORY.tagBySTDDEV <-
 #ErrorCleaning--
 ACCESSORY.ErrorCleaning <- function(dataset, doClean) {
   rawblock <- dataset
-  if (isTRUE(doClean)) {
+  if (isTRUE(doClean[1])) {
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       blacksite <-
-        ACCESSORY.tagBySTDDEV(dataset, accession)
+        ACCESSORY.tagBySTDDEV(dataset, accession, doClean[2])
       rawblock <-
         filter(rawblock, !(rawblock$completeID %in% blacksite))
     }
@@ -277,12 +281,12 @@ ACCESSORY.qqGen <- function(accession, column, dataset_in, doClean) {
     paste0(
       SWITCHBOARD.DIRECTORY,
       "QQPlot_Images",
-      ifelse(doClean, "_Corrected", ""),
+      ifelse(doClean[1], "_Corrected", ""),
       "\\",
       column,
       "--",
       accession,
-      ifelse(doClean, "_Corrected", ""),
+      ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
       ".png"
     )
   )
@@ -299,13 +303,13 @@ ACCESSORY.qqGenLog <- function(accession, column, dataset_in, doClean) {
     paste0(
       SWITCHBOARD.DIRECTORY,
       "QQPlot_Images",
-      ifelse(doClean, "_Corrected", ""),
+      ifelse(doClean[1], "_Corrected", ""),
       "\\",
       column,
       "--",
       accession,
       "_LOG",
-      ifelse(doClean, "_Corrected", ""),
+      ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
       ".png"
     )
   )
@@ -322,13 +326,13 @@ ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, doCl
     paste0(
       SWITCHBOARD.DIRECTORY,
       "QQPlot_Images",
-      ifelse(doClean, "_Corrected", ""),
+      ifelse(doClean[1], "_Corrected", ""),
       "\\",
       column,
       "--",
       accession,
       "_SQRT", 
-      ifelse(doClean, "_Corrected", ""),
+      ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
       ".png"
     )
   )
@@ -390,16 +394,25 @@ main <- function() {
   
   print(PARLIER)
 
-  for(doClean in c(FALSE, TRUE)) {
+  for(doClean in SWITCHBOARD.Percentiles) {
+    print(doClean)
     
     finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER, doClean)
+    
+    print(doClean[3])
+    print(paste0(
+      SWITCHBOARD.DIRECTORY,
+      "SAS_Datasets\\PARL0", 
+      ifelse(doClean[1], paste0("C_", doClean[3]), ""),
+      ".csv"
+    ))
     
     write.csv(
       finishedPARLIER,
       paste0(
         SWITCHBOARD.DIRECTORY,
         "SAS_Datasets\\PARL0", 
-        ifelse(doClean, "C", ""),
+        ifelse(doClean[1], paste0("C_", doClean[3]), ""),
         ".csv"
       ),
       row.names = FALSE
@@ -408,7 +421,7 @@ main <- function() {
       finishedPARLIER,
       paste0(
         "C:\\Users\\gjang\\Documents\\SASUniversityEdition\\myfolders\\PARL0", 
-        ifelse(doClean, "C", ""),
+        ifelse(doClean[1], paste0("C", doClean[3]), ""),
         ".csv"
       ),
       row.names = FALSE
@@ -416,7 +429,7 @@ main <- function() {
   
     title <- paste(
       "Double-Log Cladode Parameter Cross-Relations",
-      ifelse(doClean, " Corrected", ""),
+      ifelse(doClean[1], paste0(" Corrected - ", doClean[3]), ""),
       ".pdf",
       sep = ""
     )
@@ -428,7 +441,7 @@ main <- function() {
       paste(
         SWITCHBOARD.DIRECTORY,
         "R^2_Records\\Double-Log_Regression_R^2_Values",
-        ifelse(doClean, "_Corrected", ""),
+        ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
         ".csv",
         sep = ""
       ),
