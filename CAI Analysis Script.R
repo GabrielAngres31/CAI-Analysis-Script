@@ -55,12 +55,13 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "FW_div_H",
     "FW_div_W",
     "FW_div_D",
-    "FW_div_T"
+   
+     "FW_div_T"
   )
 SWITCHBOARD.Percentiles <- list(
   c(FALSE, 10000,  "All"), 
-  c( TRUE,  1.645, "95th"), 
-  c( TRUE,  1.282, "90th")
+  c(TRUE,  1.645, "95th"), 
+  c(TRUE,  1.282, "90th")
   )
 
 #List of all plots  to be generated.
@@ -85,7 +86,7 @@ SWITCHBOARD.GRAPHS_LIST <- tribble(
 )
 
 #R^2 Output csv dataframes
-csvR2Frame <- data.frame(Graph = character(), R2 = double())
+csvR2Frame <- data.frame(Dataset = character(), Graph = character(), R2 = double(), Mode = character())
 
 #List of anomalous datapads--TODO: Establish statistical, heuristic basis for removal
 errorPads <-
@@ -128,8 +129,8 @@ ACCESSORY.tagBySTDDEV <-
         dataset_accessionfilter[[columnname]]
       meanCol <- mean(tempcol)
       STDCol <- sd(tempcol)
-      bound_upper <- (meanCol + (STDCol * threshold))
-      bound_lower <- (meanCol - (STDCol * threshold))
+      bound_upper <- (meanCol + (STDCol * as.numeric(threshold)))
+      bound_lower <- (meanCol - (STDCol * as.numeric(threshold)))
       detention <-
         filter(
           dataset_accessionfilter, !!as.symbol(columnname) < bound_lower |
@@ -147,7 +148,7 @@ ACCESSORY.tagBySTDDEV <-
 #ErrorCleaning--
 ACCESSORY.ErrorCleaning <- function(dataset, doClean) {
   rawblock <- dataset
-  if (isTRUE(doClean[1])) {
+  if (doClean[1]) {
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       blacksite <-
         ACCESSORY.tagBySTDDEV(dataset, accession, doClean[2])
@@ -224,15 +225,15 @@ PIPELINE.PlotRegress = function(x,
            round(slope, SWITCHBOARD.roundto),
            collapse = " ")
   
-  csvR2Frame <<-
-    rbind(csvR2Frame,
+  csvR2Frame <<- rbind(csvR2Frame,
           data.frame(
             "Dataset" = paste0(year, " Dataset ", accession, collapse = " "),
             "Graph" = paste0(xlab, " vs. ", ylab,
                              collapse = " "),
             "R2" = round(rsquare, SWITCHBOARD.roundto),
             "Mode" = graphmode
-          ))
+          )
+  )
   plot(
     x_data,
     y_data,
@@ -392,20 +393,11 @@ main <- function() {
   PARLIER <- mutate(PARLIER, FW_div_T = fresh_weight / thickness)
   PARLIER <- mutate(PARLIER, D_div_W = diameter / width)
   
-  print(PARLIER)
+  #print(PARLIER)
 
   for(doClean in SWITCHBOARD.Percentiles) {
-    print(doClean)
-    
+
     finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER, doClean)
-    
-    print(doClean[3])
-    print(paste0(
-      SWITCHBOARD.DIRECTORY,
-      "SAS_Datasets\\PARL0", 
-      ifelse(doClean[1], paste0("C_", doClean[3]), ""),
-      ".csv"
-    ))
     
     write.csv(
       finishedPARLIER,
@@ -447,6 +439,7 @@ main <- function() {
       ),
       row.names = FALSE
   )
+  csvR2Frame <<- data.frame(Dataset = character(), Graph = character(), R2 = double(), Mode = character())
   }
 }
 
