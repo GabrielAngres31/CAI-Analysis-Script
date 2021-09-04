@@ -13,6 +13,7 @@ library("ggplot2")
 library("car")
 library("dunn.test")
 library("Rcmdr")
+library("hash")
 
 #SWITCHBOARD
 #   Hacky way of getting consistent legend generation, also controls value rounding over the program
@@ -44,6 +45,28 @@ SWITCHBOARD.strACCESSIONLIST <-
     "845",
     "854"
   )
+
+SWITCHBOARD.FRESH_DRY_RAWS <- list(
+  c( 9.17, 0.60),
+  c( 8.48, 0.49),
+  c( 8.73, 0.60),
+  c(10.23, 0.68),
+  c( 5.76, 0.49),
+  c(10.65, 0.89),
+  c(10.37, 0.65),
+  c( 5.47, 0.40),
+  c( 8.11, 0.57),
+  c( 9.71, 0.66),
+  c( 4.56, 0.32),
+  c( 3.97, 0.33),
+  c( 7.59, 0.71),
+  c( 2.31, 0.21)
+)
+
+SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS <- 
+ hash( SWITCHBOARD.strACCESSIONLIST, SWITCHBOARD.FRESH_DRY_RAWS )
+
+  
 SWITCHBOARD.strQQMEASURESLIST <-
   c(
     "fresh_weight", 
@@ -55,7 +78,6 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "FW_div_H",
     "FW_div_W",
     "FW_div_D",
-   
      "FW_div_T"
   )
 SWITCHBOARD.Percentiles <- list(
@@ -392,6 +414,17 @@ main <- function() {
   PARLIER <- mutate(PARLIER, FW_div_H = fresh_weight / height)
   PARLIER <- mutate(PARLIER, FW_div_T = fresh_weight / thickness)
   PARLIER <- mutate(PARLIER, D_div_W = diameter / width)
+  
+  #Add Dry Weight measure for further analysis
+  
+  PARLIER$dry_weight <- 0
+  for (accession in keys(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS)) {
+    accession_set <- SWITCHBOARD.FRESH_DRY_RATIOS[accession]
+    PARLIER$dry_weight[PARLIER$accession == accession] <- PARLIER$fresh_weight*(values(accession_set)[2]/values(accession_set)[1])
+  }
+  #print(PARLIER$fresh_weight*as.numeric(accession_set[3])/as.numeric(accession[1]))
+  #print(PARLIER$dry_weight1)
+  
   
   #print(PARLIER)
 
