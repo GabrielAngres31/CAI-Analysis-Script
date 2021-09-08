@@ -78,7 +78,8 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "FW_div_H",
     "FW_div_W",
     "FW_div_D",
-     "FW_div_T"
+     "FW_div_T",
+    "dry_weight"
   )
 SWITCHBOARD.Percentiles <- list(
   c(FALSE, 10000,  "All"), 
@@ -100,6 +101,7 @@ SWITCHBOARD.GRAPHS_LIST <- tribble(
   'height', 'diameter',
   'height', 'thickness',
   'diameter', 'thickness',
+  'D_div_W', 'dry_weight'
   #  'add_HW', 'thickness',
   #  'add_HW', 'fresh_weight',
   #  'add_HWT', 'fresh_weight',
@@ -129,7 +131,8 @@ ACCESSORY.colnameToLegend <- function(column_text) {
     'FW_div_H'='Fresh Weight / Height',
     'FW_div_W'='Fresh Weight / Width',
     'FW_div_D'='Fresh Weight / Diameter',
-    'FW_div_T'='Fresh Weight / T'
+    'FW_div_T'='Fresh Weight / Thickness',
+    "dry_weight" = "Dry Weight"
   )
   return(legname)
 }
@@ -419,9 +422,10 @@ main <- function() {
   
   PARLIER$dry_weight <- 0
   for (accession in keys(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS)) {
-    accession_set <- SWITCHBOARD.FRESH_DRY_RATIOS[accession]
-    PARLIER$dry_weight[PARLIER$accession == accession] <- PARLIER$fresh_weight*(values(accession_set)[2]/values(accession_set)[1])
+    accession_set <- values(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS[accession])
+    PARLIER$dry_weight[PARLIER$accession == accession] <- PARLIER$fresh_weight*(accession_set[2]/accession_set[1])
   }
+  print(PARLIER$dry_weight)
   #print(PARLIER$fresh_weight*as.numeric(accession_set[3])/as.numeric(accession[1]))
   #print(PARLIER$dry_weight1)
   
