@@ -1,9 +1,9 @@
-8 accessions missing from 325 - set 3 is missing.
-3 accessions missing from 390 - 390-2-1 through 390-2-3 are missing
-8 accessions missing from 572 - set 3 is missing.
 8 accessions missing from 580 - set 3 is missing.
+8 accessions missing from 854 - set 3 is missing.
 8 accessions missing from 584 - set 3 is missing.
 8 accessions missing from 585 - set 3 is missing.
 8 accessions missing from 839 - set 3 is missing.
-8 accessions missing from 854 - set 3 is missing.
+8 accessions missing from 325 - set 3 is missing.
+8 accessions missing from 572 - set 3 is missing.
+3 accessions missing from 390 - 390-2-1 through 390-2-3 are missing
 

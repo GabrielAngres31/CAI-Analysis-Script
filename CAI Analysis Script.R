@@ -15,10 +15,12 @@ library("dunn.test")
 library("Rcmdr")
 library("hash")
 
+SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
+
+
 #SWITCHBOARD
 #   Hacky way of getting consistent legend generation, also controls value rounding over the program
 #     and some constant definitions
-
 
 SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
 SWITCHBOARD.DIRECTORY <- "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
@@ -403,7 +405,7 @@ main <- function() {
   #_______________________________________________
   #DATASET MANIPULATION, FUNCTION EXECUTION SEGMENT
     #Load Parlier csv files into memory
-  PARLIER <- read.csv(file = 'PARL0_09092021.csv')
+  PARLIER <- SWITCHBOARD.csvMAINFILE
   
   #Data compatibility modifications
   PARLIER <- mutate(PARLIER, pad_id = 1)
