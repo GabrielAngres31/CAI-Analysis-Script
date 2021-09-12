@@ -420,6 +420,9 @@ main <- function() {
   PARLIER <- mutate(PARLIER, FW_div_T = fresh_weight / thickness)
   PARLIER <- mutate(PARLIER, D_div_W = diameter / width)
   
+  areaFrame <- read.csv('Pad_Area_Estimations.csv', fileEncoding = 'UTF-8-BOM')
+  PARLIER <- merge(PARLIER, areaFrame, by = "completeID")
+  
   #Add Dry Weight measure for further analysis
   
   PARLIER$dry_weight <- 0

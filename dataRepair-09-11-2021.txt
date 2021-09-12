@@ -1,0 +1,2 @@
+Investigate - one of the areas is 0.0001 somehow???What the fuck?
+Also giant discrepancies between predicted and measure area.
