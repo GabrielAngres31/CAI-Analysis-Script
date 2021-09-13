@@ -18,6 +18,7 @@ library("hash")
 SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
 
 
+
 #SWITCHBOARD
 #   Hacky way of getting consistent legend generation, also controls value rounding over the program
 #     and some constant definitions
