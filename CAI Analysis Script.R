@@ -14,7 +14,8 @@ library("car")
 library("dunn.test")
 library("Rcmdr")
 library("hash")
-
+library("magrittr")
+library("olsrr")
 SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
 
 
@@ -166,28 +167,25 @@ ACCESSORY.tagBySTDDEV <-
         )
       blacklist <- as.vector(detention$completeID)
       blacksite <- c(blacksite, blacklist)
-      print(c("List:", blacklist))
-      print(c("Site:", blacksite))
-      print(c("Column:", columnname))
+      #print(c("List:", blacklist))
+      #print(c("Site:", blacksite))
+      #print(c("Column:", columnname))
     }
     return(blacksite)
   }
 
 #ErrorCleaning--
-ACCESSORY.ErrorCleaning <- function(dataset, doClean) {
+ACCESSORY.ErrorCleaning <- function(dataset, perc_threshold) {
   rawblock <- dataset
-  if (doClean[1]) {
+  dev_threshold <- qnorm((100-((100-perc_threshold)/2))/100)
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       blacksite <-
-        ACCESSORY.tagBySTDDEV(dataset, accession, doClean[2])
+        ACCESSORY.tagBySTDDEV(dataset, accession, dev_threshold)
       rawblock <-
         filter(rawblock, !(rawblock$completeID %in% blacksite))
     }
     finalDataset <- rawblock
     return(finalDataset)
-  } else {
-    return(dataset)
-  }
 }
 
 #General Data Subset Function
@@ -301,7 +299,7 @@ PIPELINE.CorrPlotsGenerator <-
     }
   }
 
-ACCESSORY.qqGen <- function(accession, column, dataset_in, doClean) {
+ACCESSORY.qqGen <- function(accession, column, dataset_in, threshold) {
   subsetA <-
     ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in = dataset_in)
   title <-
@@ -310,20 +308,20 @@ ACCESSORY.qqGen <- function(accession, column, dataset_in, doClean) {
     paste0(
       SWITCHBOARD.DIRECTORY,
       "QQPlot_Images",
-      ifelse(doClean[1], "_Corrected", ""),
       "\\",
       column,
       "--",
       accession,
-      ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
-      ".png"
+      "_LIN_",
+      threshold,
+      "th.png"
     )
   )
   qqPlot(subsetA[[column]], main = title, envelope = 0.95)
   dev.off()
 }
 
-ACCESSORY.qqGenLog <- function(accession, column, dataset_in, doClean) {
+ACCESSORY.qqGenLog <- function(accession, column, dataset_in, threshold) {
   subsetA <-
     ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in = dataset_in)
   title <-
@@ -332,21 +330,20 @@ ACCESSORY.qqGenLog <- function(accession, column, dataset_in, doClean) {
     paste0(
       SWITCHBOARD.DIRECTORY,
       "QQPlot_Images",
-      ifelse(doClean[1], "_Corrected", ""),
       "\\",
       column,
       "--",
       accession,
-      "_LOG",
-      ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
-      ".png"
+      "_LOG_",
+      threshold,
+      "th.png"
     )
   )
   qqPlot(log(subsetA[[column]]), main = title, envelope = 0.95)
   dev.off()
 }
 
-ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, doClean) {
+ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, threshold) {
   subsetA <-
     ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in)
   title <-
@@ -355,21 +352,20 @@ ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, doCl
     paste0(
       SWITCHBOARD.DIRECTORY,
       "QQPlot_Images",
-      ifelse(doClean[1], "_Corrected", ""),
       "\\",
       column,
       "--",
       accession,
-      "_SQRT", 
-      ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
-      ".png"
+      "_SQRT_", 
+      threshold,
+      "th.png"
     )
   )
   qqPlot(sqrt(subsetA[[column]]), main = title, envelope = 0.95)
   dev.off()
 }
 
-PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
+PIPELINE.PlotCompiler <- function(dataset_in, threshold) {
   for (dataset in c(SWITCHBOARD.strALLDATA)) {
     for (accession in c(
       SWITCHBOARD.strALLACCESSIONS,
@@ -394,10 +390,60 @@ PIPELINE.PlotCompiler <- function(dataset_in, doClean) {
   
   for (accession in SWITCHBOARD.strACCESSIONLIST) {
     for (measure in SWITCHBOARD.strQQMEASURESLIST) {
-      ACCESSORY.qqGen(accession, measure, dataset_in, doClean)
+      ACCESSORY.qqGen(accession, measure, dataset_in, threshold)
     }
   }
 }
+
+ACCESSORY.allSubsetsTable <- function (dataset) {
+  models_df <- data.frame(Name=character(), AdjRsq=numeric(), SBC=numeric()) 
+  iden_num <- 1
+  for (w in c(FALSE, TRUE)) {
+    for (h in c(FALSE, TRUE)) {
+      for (d in c(FALSE, TRUE)) {
+        for (t in c(FALSE, TRUE)) {
+          iter_string <- 
+              paste0(
+                ifelse(w, "width*", ""),
+                ifelse(h, "height*", ""),
+                ifelse(d, "diameter*", ""),
+                ifelse(t, "thickness*", ""),
+                sep = ""
+              )
+          iter_string <- substr(iter_string,1,nchar(iter_string)-1)
+          if (iter_string != "") {
+            iter_formula <- as.formula(paste0("fresh_weight ~ ", iter_string))
+            iter_model <- lm(iter_formula, dataset)
+            iter_summ <- summary(iter_model)
+            models_df <- rbind(
+              models_df,
+              data.frame(
+                Name = iter_string,
+                AdjRsq = iter_summ[["adj.r.squared"]],
+                SBC = BIC(iter_model)
+              )
+            )
+          }
+        }
+      }
+    }
+  }
+  return(models_df)
+}
+
+statsArray <- array(
+        1:1350,
+        dim = c(3, 15, 15, 2),
+        dimnames = list(
+              c("100", "95", "90"),
+              c("All", "242", "246", "319", "325", "326", "390", "572", "580", "582", "584", "585", "839", "845", "854"),
+              c("width", "height", "diameter", "thickness", 
+                "width*height", "width*diameter", "width*thickness", "height*diameter", "height*thickness", "diameter*thickness", 
+                "width*height*diameter", "width*height*thickness", "width*diameter*thickness", "height*diameter*thickness", 
+                "width*height*diameter*thickness"),
+              c("AdjRsq", "SBC")
+          )
+    )
 
 main <- function() {
   
@@ -406,6 +452,8 @@ main <- function() {
   #_______________________________________________
   #DATASET MANIPULATION, FUNCTION EXECUTION SEGMENT
     #Load Parlier csv files into memory
+  workingFilenames <- list()
+  
   PARLIER <- SWITCHBOARD.csvMAINFILE
   
   #Data compatibility modifications
@@ -414,12 +462,13 @@ main <- function() {
   
   #Add Error-correction derived measures
   
-  PARLIER <- mutate(PARLIER, H_div_W = height / width)
-  PARLIER <- mutate(PARLIER, FW_div_W = fresh_weight / width)
-  PARLIER <- mutate(PARLIER, FW_div_D = fresh_weight / diameter)
-  PARLIER <- mutate(PARLIER, FW_div_H = fresh_weight / height)
-  PARLIER <- mutate(PARLIER, FW_div_T = fresh_weight / thickness)
-  PARLIER <- mutate(PARLIER, D_div_W = diameter / width)
+  PARLIER <- PARLIER %>%
+    mutate(H_div_W = height / width) %>%
+    mutate(FW_div_W = fresh_weight / width) %>%
+    mutate(FW_div_D = fresh_weight / diameter) %>% 
+    mutate(FW_div_H = fresh_weight / height) %>%
+    mutate(PARLIER, FW_div_T = fresh_weight / thickness) %>%
+    mutate(PARLIER, D_div_W = diameter / width)
   
   areaFrame <- read.csv('Pad_Area_Estimations.csv', fileEncoding = 'UTF-8-BOM')
   PARLIER <- merge(PARLIER, areaFrame, by = "completeID")
@@ -431,58 +480,161 @@ main <- function() {
     accession_set <- values(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS[accession])
     PARLIER$dry_weight[PARLIER$accession == accession] <- PARLIER$fresh_weight*(accession_set[2]/accession_set[1])
   }
-  print(PARLIER$dry_weight)
   #print(PARLIER$fresh_weight*as.numeric(accession_set[3])/as.numeric(accession[1]))
   #print(PARLIER$dry_weight1)
   
-  
   #print(PARLIER)
 
-  for(doClean in SWITCHBOARD.Percentiles) {
-
-    finishedPARLIER <- ACCESSORY.ErrorCleaning(PARLIER, doClean)
-    
+  for(threshold in c(100, 95, 90)) {
+    parlVersion <- ACCESSORY.ErrorCleaning(PARLIER, threshold)
+    fileTitle <- paste0(
+      SWITCHBOARD.DIRECTORY,
+      "ref_PARL0", 
+      ifelse(threshold != 100, paste0("C_", threshold), ""),
+      ".csv"
+    )
     write.csv(
-      finishedPARLIER,
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "SAS_Datasets\\PARL0", 
-        ifelse(doClean[1], paste0("C_", doClean[3]), ""),
-        ".csv"
-      ),
+      parlVersion,
+      fileTitle,
       row.names = FALSE
       )
-    write.csv(
-      finishedPARLIER,
-      paste0(
-        "C:\\Users\\gjang\\Documents\\SASUniversityEdition\\myfolders\\PARL0", 
-        ifelse(doClean[1], paste0("C", doClean[3]), ""),
-        ".csv"
-      ),
-      row.names = FALSE
-    )
-  
-    title <- paste(
+    workingFilenames <- append(workingFilenames, fileTitle)
+    #---------------------------------------------------------------
+    for (accession in c("242", "246", "319", "325", "326", "390", "572", "580", "582", "584", "585", "839", "845", "854")) {
+      loadup_df <- ACCESSORY.allSubsetsTable(
+        ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion)
+      )
+      for (model in c("width", "height", "diameter", "thickness", 
+                      "width*height", "width*diameter", "width*thickness", "height*diameter", "height*thickness", "diameter*thickness", 
+                      "width*height*diameter", "width*height*thickness", "width*diameter*thickness", "height*diameter*thickness", 
+                      "width*height*diameter*thickness")){
+        for (stat in c("AdjRsq", "SBC")) {
+          statsArray[
+            as.character(threshold),
+            accession, 
+            model, 
+            stat] <- loadup_df[loadup_df$Name == model,stat]
+        }
+      }
+    }
+    #---------------------------------------------------------------
+    
+    pdftitle <- paste(
       "Double-Log Cladode Parameter Cross-Relations",
-      ifelse(doClean[1], paste0(" Corrected - ", doClean[3]), ""),
+      ifelse(threshold != 100, paste0(" Corrected - ", threshold), ""),
       ".pdf",
       sep = ""
     )
-    pdf(title)
-    PIPELINE.PlotCompiler(finishedPARLIER, doClean)
+    pdf(pdftitle)
+    PIPELINE.PlotCompiler(parlVersion, threshold)
     dev.off()
     write.csv(
       csvR2Frame,
       paste(
         SWITCHBOARD.DIRECTORY,
         "R^2_Records\\Double-Log_Regression_R^2_Values",
-        ifelse(doClean[1], paste0("_Corrected_", doClean[3]), ""),
+        ifelse(threshold != 100, paste0("_Corrected_", threshold), ""),
         ".csv",
         sep = ""
       ),
       row.names = FALSE
   )
   csvR2Frame <<- data.frame(Dataset = character(), Graph = character(), R2 = double(), Mode = character())
+  
+  statFrame <- data.frame(matrix(ncol = 16, nrow = 0))
+  
+  RsqFrame <- statFrame
+  SBCFrame <- statFrame
+  
+  dimKeyPair <- list("width" = "W", "height" = "H", "diameter" = "D", "thickness" = "Th", 
+                     "width*height" = "WH", "width*diameter" = "WD", "width*thickness" = "WT", "height*diameter" = "HD", "height*thickness" = "HT", "diameter*thickness" = "DT", 
+                     "width*height*diameter" = "WHD", "width*height*thickness" = "WHT", "width*diameter*thickness" = "WDT", "height*diameter*thickness" = "HDT", 
+                     "width*height*diameter*thickness" = "WHDT")
+  
+    for (accession in c("242", "246", "319", "325", "326", "390", "572", "580", "582", "584", "585", "839", "845", "854")) {
+      RsqFrame <- rbind(RsqFrame, 
+                        data.frame(
+                              accession, 
+                              statsArray[toString(threshold), toString(accession), "width", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "height", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "diameter", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*height", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*diameter", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "height*diameter", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "height*thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "diameter*thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*height*diameter", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*height*thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*diameter*thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "height*diameter*thickness", "AdjRsq"],
+                              statsArray[toString(threshold), toString(accession), "width*height*diameter*thickness", "AdjRsq"]
+                          )
+                       )
+      
+      SBCFrame <- rbind(SBCFrame, 
+                        c(accession, 
+                          statsArray[toString(threshold), toString(accession), "width", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "height", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "diameter", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*height", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*diameter", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "height*diameter", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "height*thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "diameter*thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*height*diameter", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*height*thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*diameter*thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "height*diameter*thickness", "SBC"],
+                          statsArray[toString(threshold), toString(accession), "width*height*diameter*thickness", "SBC"]
+                        )
+      )
+    }
+  colnames(RsqFrame) <- c("Accession",
+                          "W",
+                          "H",
+                          "D",
+                          "Th",
+                          "WH",
+                          "WD",
+                          "WT",
+                          "HD",
+                          "HT",
+                          "DT",
+                          "WHD",
+                          "WHT",
+                          "WDT",
+                          "HDT",
+                          "HWDT")
+  write.csv(
+    RsqFrame,
+    paste0(SWITCHBOARD.DIRECTORY, "Correlation_Analyses\\Rsq_T_", threshold, ".csv"),
+    row.names = FALSE
+  )
+  colnames(SBCFrame) <- c("Accession",
+                          "W",
+                          "H",
+                          "D",
+                          "Th",
+                          "WH",
+                          "WD",
+                          "WT",
+                          "HD",
+                          "HT",
+                          "DT",
+                          "WHD",
+                          "WHT",
+                          "WDT",
+                          "HDT",
+                          "HWDT")
+  write.csv(
+    SBCFrame,
+    paste0(SWITCHBOARD.DIRECTORY, "Correlation_Analyses\\SBC_T_", threshold, ".csv"),
+    row.names = FALSE
+  )
   }
 }
 
