@@ -4,34 +4,27 @@
 setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script")
 
 #Load relevant packages into library
-library("xlsx")
+#library("xlsx")
 library("dplyr")
 library("tibble")
 library("rsq")
-library("qwraps2")
-library("ggplot2")
 library("car")
-library("dunn.test")
 library("Rcmdr")
 library("hash")
-library("magrittr")
-library("olsrr")
+
 SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
-
-
 
 #SWITCHBOARD
 #   Hacky way of getting consistent legend generation, also controls value rounding over the program
 #     and some constant definitions
 
 SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
-SWITCHBOARD.DIRECTORY <- "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
+SWITCHBOARD.DIRECTORY <-
+  "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
 SWITCHBOARD.strALLDATA <- "Entire"
 SWITCHBOARD.roundto <- 3
-SWITCHBOARD.strCLEANONLIST <- 
-  c(
-    "D_div_W"
-    )
+SWITCHBOARD.strCLEANONLIST <-
+  c("D_div_W")
 SWITCHBOARD.strACCESSIONLIST <-
   c(
     "242",
@@ -50,30 +43,50 @@ SWITCHBOARD.strACCESSIONLIST <-
     "854"
   )
 
+SWITCHBOARD.strMODELLIST <-
+  c(
+    "Accession",
+    "W",
+    "H",
+    "D",
+    "Th",
+    "WH",
+    "WD",
+    "WT",
+    "HD",
+    "HT",
+    "DT",
+    "WHD",
+    "WHT",
+    "WDT",
+    "HDT",
+    "HWDT"
+  )
+
 SWITCHBOARD.FRESH_DRY_RAWS <- list(
-  c( 9.17, 0.60),
-  c( 8.48, 0.49),
-  c( 8.73, 0.60),
+  c(9.17, 0.60),
+  c(8.48, 0.49),
+  c(8.73, 0.60),
   c(10.23, 0.68),
-  c( 5.76, 0.49),
+  c(5.76, 0.49),
   c(10.65, 0.89),
   c(10.37, 0.65),
-  c( 5.47, 0.40),
-  c( 8.11, 0.57),
-  c( 9.71, 0.66),
-  c( 4.56, 0.32),
-  c( 3.97, 0.33),
-  c( 7.59, 0.71),
-  c( 2.31, 0.21)
+  c(5.47, 0.40),
+  c(8.11, 0.57),
+  c(9.71, 0.66),
+  c(4.56, 0.32),
+  c(3.97, 0.33),
+  c(7.59, 0.71),
+  c(2.31, 0.21)
 )
 
-SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS <- 
- hash( SWITCHBOARD.strACCESSIONLIST, SWITCHBOARD.FRESH_DRY_RAWS )
+SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS <-
+  hash(SWITCHBOARD.strACCESSIONLIST, SWITCHBOARD.FRESH_DRY_RAWS)
 
-  
+
 SWITCHBOARD.strQQMEASURESLIST <-
   c(
-    "fresh_weight", 
+    "fresh_weight",
     "width",
     "height",
     "diameter",
@@ -82,30 +95,25 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "FW_div_H",
     "FW_div_W",
     "FW_div_D",
-     "FW_div_T",
+    "FW_div_T",
     "dry_weight"
-  )
-SWITCHBOARD.Percentiles <- list(
-  c(FALSE, 10000,  "All"), 
-  c(TRUE,  1.645, "95th"), 
-  c(TRUE,  1.282, "90th")
   )
 
 #List of all plots  to be generated.
 SWITCHBOARD.GRAPHS_LIST <- tribble(
   ~ xname, ~ yname,
-  "width",  "fresh_weight",
-  'height', 'fresh_weight',
-  'diameter', 'fresh_weight',
+  'width',     'fresh_weight',
+  'height',    'fresh_weight',
+  'diameter',  'fresh_weight',
   'thickness', 'fresh_weight',
-  'D_div_W', 'fresh_weight',
-  'width', 'height',
-  'width', 'diameter',
-  'width', 'thickness',
-  'height', 'diameter',
-  'height', 'thickness',
-  'diameter', 'thickness',
-  'D_div_W', 'dry_weight'
+  'D_div_W',   'fresh_weight',
+  'width',     'height',
+  'width',     'diameter',
+  'width',     'thickness',
+  'height',    'diameter',
+  'height',    'thickness',
+  'diameter',  'thickness',
+  'D_div_W',   'dry_weight'
   #  'add_HW', 'thickness',
   #  'add_HW', 'fresh_weight',
   #  'add_HWT', 'fresh_weight',
@@ -114,7 +122,13 @@ SWITCHBOARD.GRAPHS_LIST <- tribble(
 )
 
 #R^2 Output csv dataframes
-csvR2Frame <- data.frame(Dataset = character(), Graph = character(), R2 = double(), Mode = character())
+csvR2Frame <-
+  data.frame(
+    Dataset = character(),
+    Graph = character(),
+    R2 = double(),
+    Mode = character()
+  )
 
 #List of anomalous datapads--TODO: Establish statistical, heuristic basis for removal
 errorPads <-
@@ -132,10 +146,10 @@ ACCESSORY.colnameToLegend <- function(column_text) {
     "thickness" = "Thickness",
     "fresh_weight" = "Fresh Weight",
     'D_div_W' = "Diameter / Width",
-    'FW_div_H'='Fresh Weight / Height',
-    'FW_div_W'='Fresh Weight / Width',
-    'FW_div_D'='Fresh Weight / Diameter',
-    'FW_div_T'='Fresh Weight / Thickness',
+    'FW_div_H' = 'Fresh Weight / Height',
+    'FW_div_W' = 'Fresh Weight / Width',
+    'FW_div_D' = 'Fresh Weight / Diameter',
+    'FW_div_T' = 'Fresh Weight / Thickness',
     "dry_weight" = "Dry Weight"
   )
   return(legname)
@@ -162,7 +176,8 @@ ACCESSORY.tagBySTDDEV <-
       bound_lower <- (meanCol - (STDCol * as.numeric(threshold)))
       detention <-
         filter(
-          dataset_accessionfilter, !!as.symbol(columnname) < bound_lower |
+          dataset_accessionfilter,
+          !!as.symbol(columnname) < bound_lower |
             !!as.symbol(columnname) > bound_upper
         )
       blacklist <- as.vector(detention$completeID)
@@ -177,15 +192,17 @@ ACCESSORY.tagBySTDDEV <-
 #ErrorCleaning--
 ACCESSORY.ErrorCleaning <- function(dataset, perc_threshold) {
   rawblock <- dataset
-  dev_threshold <- qnorm((100-((100-perc_threshold)/2))/100)
-    for (accession in SWITCHBOARD.strACCESSIONLIST) {
-      blacksite <-
-        ACCESSORY.tagBySTDDEV(dataset, accession, dev_threshold)
-      rawblock <-
-        filter(rawblock, !(rawblock$completeID %in% blacksite))
-    }
-    finalDataset <- rawblock
-    return(finalDataset)
+  dev_threshold <- qnorm((100 - ((
+    100 - perc_threshold
+  ) / 2)) / 100)
+  for (accession in SWITCHBOARD.strACCESSIONLIST) {
+    blacksite <-
+      ACCESSORY.tagBySTDDEV(dataset, accession, dev_threshold)
+    rawblock <-
+      filter(rawblock,!(rawblock$completeID %in% blacksite))
+  }
+  finalDataset <- rawblock
+  return(finalDataset)
 }
 
 #General Data Subset Function
@@ -217,12 +234,12 @@ ACCESSORY.DataSubset <-
 ###Plotter function which creates labeled figure, regressions
 
 PIPELINE.PlotRegress = function(x,
-                       y,
-                       year = SWITCHBOARD.strALLDATA,
-                       accession = SWITCHBOARD.strALLACCESSIONS,
-                       dataset_in, 
-                       graphmode) 
-  {
+                                y,
+                                year = SWITCHBOARD.strALLDATA,
+                                accession = SWITCHBOARD.strALLACCESSIONS,
+                                dataset_in,
+                                graphmode)
+{
   subset <-
     ACCESSORY.DataSubset(year, accession, dataset_in)
   if (is.null(subset) == TRUE) {
@@ -245,20 +262,23 @@ PIPELINE.PlotRegress = function(x,
   intercept <- coefficients(targetline)[1]
   slope <- coefficients(targetline)[2]
   details <-
-    paste0("y_0 = ",
-           round(intercept, SWITCHBOARD.roundto),
-           ", m = ",
-           round(slope, SWITCHBOARD.roundto),
-           collapse = " ")
+    paste0(
+      "y_0 = ",
+      round(intercept, SWITCHBOARD.roundto),
+      ", m = ",
+      round(slope, SWITCHBOARD.roundto),
+      collapse = " "
+    )
   
-  csvR2Frame <<- rbind(csvR2Frame,
-          data.frame(
-            "Dataset" = paste0(year, " Dataset ", accession, collapse = " "),
-            "Graph" = paste0(xlab, " vs. ", ylab,
-                             collapse = " "),
-            "R2" = round(rsquare, SWITCHBOARD.roundto),
-            "Mode" = graphmode
-          )
+  csvR2Frame <<- rbind(
+    csvR2Frame,
+    data.frame(
+      "Dataset" = paste0(year, " Dataset ", accession, collapse = " "),
+      "Graph" = paste0(xlab, " vs. ", ylab,
+                       collapse = " "),
+      "R2" = round(rsquare, SWITCHBOARD.roundto),
+      "Mode" = graphmode
+    )
   )
   plot(
     x_data,
@@ -273,7 +293,18 @@ PIPELINE.PlotRegress = function(x,
       ", N = ",
       nrow(subslice)
     ),
-    main = paste0(xlab, " vs. ", ylab, "\n", year, " Dataset, ", accession, "Mode - ", graphmode, collapse = " "),
+    main = paste0(
+      xlab,
+      " vs. ",
+      ylab,
+      "\n",
+      year,
+      " Dataset, ",
+      accession,
+      "Mode - ",
+      graphmode,
+      collapse = " "
+    ),
     xlab = xlab,
     ylab = ylab
   )
@@ -292,78 +323,90 @@ PIPELINE.CorrPlotsGenerator <-
            accession = SWITCHBOARD.strALLACCESSIONS,
            dataset_in) {
     for (i in 1:nrow(figure_guide)) {
-       for (graphmode in c("Double Log", "Double Linear")) {
-        row <- figure_guide[i,]
-        PIPELINE.PlotRegress(row$xname, row$yname, year, accession, dataset_in, graphmode)
+      for (graphmode in c("Double Log", "Double Linear")) {
+        row <- figure_guide[i, ]
+        PIPELINE.PlotRegress(row$xname,
+                             row$yname,
+                             year,
+                             accession,
+                             dataset_in,
+                             graphmode)
       }
     }
   }
 
-ACCESSORY.qqGen <- function(accession, column, dataset_in, threshold) {
-  subsetA <-
-    ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in = dataset_in)
-  title <-
-    paste0(accession, ", ", column)
-  png(
-    paste0(
-      SWITCHBOARD.DIRECTORY,
-      "QQPlot_Images",
-      "\\",
-      column,
-      "--",
-      accession,
-      "_LIN_",
-      threshold,
-      "th.png"
+ACCESSORY.qqGen <-
+  function(accession, column, dataset_in, threshold) {
+    subsetA <-
+      ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA,
+                           filter_accession = accession,
+                           dataset_in = dataset_in)
+    title <-
+      paste0(accession, ", ", column)
+    png(
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "QQPlot_Images",
+        "\\",
+        column,
+        "--",
+        accession,
+        "_LIN_",
+        threshold,
+        "th.png"
+      )
     )
-  )
-  qqPlot(subsetA[[column]], main = title, envelope = 0.95)
-  dev.off()
-}
+    qqPlot(subsetA[[column]], main = title, envelope = 0.95)
+    dev.off()
+  }
 
-ACCESSORY.qqGenLog <- function(accession, column, dataset_in, threshold) {
-  subsetA <-
-    ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in = dataset_in)
-  title <-
-    paste0(accession, ", ", column)
-  png(
-    paste0(
-      SWITCHBOARD.DIRECTORY,
-      "QQPlot_Images",
-      "\\",
-      column,
-      "--",
-      accession,
-      "_LOG_",
-      threshold,
-      "th.png"
+ACCESSORY.qqGenLog <-
+  function(accession, column, dataset_in, threshold) {
+    subsetA <-
+      ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA,
+                           filter_accession = accession,
+                           dataset_in = dataset_in)
+    title <-
+      paste0(accession, ", ", column)
+    png(
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "QQPlot_Images",
+        "\\",
+        column,
+        "--",
+        accession,
+        "_LOG_",
+        threshold,
+        "th.png"
+      )
     )
-  )
-  qqPlot(log(subsetA[[column]]), main = title, envelope = 0.95)
-  dev.off()
-}
+    qqPlot(log(subsetA[[column]]), main = title, envelope = 0.95)
+    dev.off()
+  }
 
-ACCESSORY.qqGenSqrt <- function(accession, column, dataset_in = dataset_in, threshold) {
-  subsetA <-
-    ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in)
-  title <-
-    paste0(accession, ", ", column)
-  png(
-    paste0(
-      SWITCHBOARD.DIRECTORY,
-      "QQPlot_Images",
-      "\\",
-      column,
-      "--",
-      accession,
-      "_SQRT_", 
-      threshold,
-      "th.png"
+ACCESSORY.qqGenSqrt <-
+  function(accession, column, dataset_in = dataset_in, threshold) {
+    subsetA <-
+      ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in)
+    title <-
+      paste0(accession, ", ", column)
+    png(
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "QQPlot_Images",
+        "\\",
+        column,
+        "--",
+        accession,
+        "_SQRT_",
+        threshold,
+        "th.png"
+      )
     )
-  )
-  qqPlot(sqrt(subsetA[[column]]), main = title, envelope = 0.95)
-  dev.off()
-}
+    qqPlot(sqrt(subsetA[[column]]), main = title, envelope = 0.95)
+    dev.off()
+  }
 
 PIPELINE.PlotCompiler <- function(dataset_in, threshold) {
   for (dataset in c(SWITCHBOARD.strALLDATA)) {
@@ -396,33 +439,34 @@ PIPELINE.PlotCompiler <- function(dataset_in, threshold) {
 }
 
 ACCESSORY.allSubsetsTable <- function (dataset) {
-  models_df <- data.frame(Name=character(), AdjRsq=numeric(), SBC=numeric()) 
+  models_df <-
+    data.frame(Name = character(),
+               AdjRsq = numeric(),
+               SBC = numeric())
   iden_num <- 1
   for (w in c(FALSE, TRUE)) {
     for (h in c(FALSE, TRUE)) {
       for (d in c(FALSE, TRUE)) {
         for (t in c(FALSE, TRUE)) {
-          iter_string <- 
-              paste0(
-                ifelse(w, "width*", ""),
-                ifelse(h, "height*", ""),
-                ifelse(d, "diameter*", ""),
-                ifelse(t, "thickness*", ""),
-                sep = ""
-              )
-          iter_string <- substr(iter_string,1,nchar(iter_string)-1)
+          iter_string <-
+            paste0(
+              ifelse(w, "width*", ""),
+              ifelse(h, "height*", ""),
+              ifelse(d, "diameter*", ""),
+              ifelse(t, "thickness*", ""),
+              sep = ""
+            )
+          iter_string <- substr(iter_string, 1, nchar(iter_string) - 1)
           if (iter_string != "") {
             iter_formula <- as.formula(paste0("fresh_weight ~ ", iter_string))
             iter_model <- lm(iter_formula, dataset)
             iter_summ <- summary(iter_model)
-            models_df <- rbind(
-              models_df,
-              data.frame(
-                Name = iter_string,
-                AdjRsq = iter_summ[["adj.r.squared"]],
-                SBC = BIC(iter_model)
-              )
-            )
+            models_df <- rbind(models_df,
+                               data.frame(
+                                 Name = iter_string,
+                                 AdjRsq = iter_summ[["adj.r.squared"]],
+                                 SBC = BIC(iter_model)
+                               ))
           }
         }
       }
@@ -431,27 +475,53 @@ ACCESSORY.allSubsetsTable <- function (dataset) {
   return(models_df)
 }
 
-statsArray <- array(
-        1:1350,
-        dim = c(3, 15, 15, 2),
-        dimnames = list(
-              c("100", "95", "90"),
-              c("All", "242", "246", "319", "325", "326", "390", "572", "580", "582", "584", "585", "839", "845", "854"),
-              c("width", "height", "diameter", "thickness", 
-                "width*height", "width*diameter", "width*thickness", "height*diameter", "height*thickness", "diameter*thickness", 
-                "width*height*diameter", "width*height*thickness", "width*diameter*thickness", "height*diameter*thickness", 
-                "width*height*diameter*thickness"),
-              c("AdjRsq", "SBC")
-          )
-    )
+statsArray <- array(1:1350,
+                    dim = c(3, 15, 15, 2),
+                    dimnames = list(
+                      c("100", "95", "90"),
+                      c(
+                        "All",
+                        "242",
+                        "246",
+                        "319",
+                        "325",
+                        "326",
+                        "390",
+                        "572",
+                        "580",
+                        "582",
+                        "584",
+                        "585",
+                        "839",
+                        "845",
+                        "854"
+                      ),
+                      c(
+                        "width",
+                        "height",
+                        "diameter",
+                        "thickness",
+                        "width*height",
+                        "width*diameter",
+                        "width*thickness",
+                        "height*diameter",
+                        "height*thickness",
+                        "diameter*thickness",
+                        "width*height*diameter",
+                        "width*height*thickness",
+                        "width*diameter*thickness",
+                        "height*diameter*thickness",
+                        "width*height*diameter*thickness"
+                      ),
+                      c("AdjRsq", "SBC")
+                    ))
 
 main <- function() {
-  
   #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   #-----------------------------------------------
   #_______________________________________________
   #DATASET MANIPULATION, FUNCTION EXECUTION SEGMENT
-    #Load Parlier csv files into memory
+  #Load Parlier csv files into memory
   workingFilenames <- list()
   
   PARLIER <- SWITCHBOARD.csvMAINFILE
@@ -465,55 +535,64 @@ main <- function() {
   PARLIER <- PARLIER %>%
     mutate(H_div_W = height / width) %>%
     mutate(FW_div_W = fresh_weight / width) %>%
-    mutate(FW_div_D = fresh_weight / diameter) %>% 
+    mutate(FW_div_D = fresh_weight / diameter) %>%
     mutate(FW_div_H = fresh_weight / height) %>%
     mutate(PARLIER, FW_div_T = fresh_weight / thickness) %>%
     mutate(PARLIER, D_div_W = diameter / width)
   
-  areaFrame <- read.csv('Pad_Area_Estimations.csv', fileEncoding = 'UTF-8-BOM')
+  areaFrame <-
+    read.csv('Pad_Area_Estimations.csv', fileEncoding = 'UTF-8-BOM')
   PARLIER <- merge(PARLIER, areaFrame, by = "completeID")
   
   #Add Dry Weight measure for further analysis
   
   PARLIER$dry_weight <- 0
   for (accession in keys(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS)) {
-    accession_set <- values(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS[accession])
-    PARLIER$dry_weight[PARLIER$accession == accession] <- PARLIER$fresh_weight*(accession_set[2]/accession_set[1])
+    accession_set <-
+      values(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS[accession])
+    PARLIER$dry_weight[PARLIER$accession == accession] <-
+      PARLIER$fresh_weight * (accession_set[2] / accession_set[1])
   }
   #print(PARLIER$fresh_weight*as.numeric(accession_set[3])/as.numeric(accession[1]))
   #print(PARLIER$dry_weight1)
   
   #print(PARLIER)
-
-  for(threshold in c(100, 95, 90)) {
+  
+  for (threshold in c(100, 95, 90)) {
     parlVersion <- ACCESSORY.ErrorCleaning(PARLIER, threshold)
-    fileTitle <- paste0(
-      SWITCHBOARD.DIRECTORY,
-      "ref_PARL0", 
-      ifelse(threshold != 100, paste0("C_", threshold), ""),
-      ".csv"
-    )
-    write.csv(
-      parlVersion,
-      fileTitle,
-      row.names = FALSE
-      )
+    fileTitle <- paste0(SWITCHBOARD.DIRECTORY,
+                        "ref_PARL0",
+                        ifelse(threshold != 100, paste0("C_", threshold), ""),
+                        ".csv")
+    write.csv(parlVersion,
+              fileTitle,
+              row.names = FALSE)
     workingFilenames <- append(workingFilenames, fileTitle)
     #---------------------------------------------------------------
-    for (accession in c("242", "246", "319", "325", "326", "390", "572", "580", "582", "584", "585", "839", "845", "854")) {
-      loadup_df <- ACCESSORY.allSubsetsTable(
-        ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion)
-      )
-      for (model in c("width", "height", "diameter", "thickness", 
-                      "width*height", "width*diameter", "width*thickness", "height*diameter", "height*thickness", "diameter*thickness", 
-                      "width*height*diameter", "width*height*thickness", "width*diameter*thickness", "height*diameter*thickness", 
-                      "width*height*diameter*thickness")){
+    for (accession in SWITCHBOARD.strACCESSIONLIST) {
+      loadup_df <- ACCESSORY.allSubsetsTable(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion))
+      for (model in c(
+        "width",
+        "height",
+        "diameter",
+        "thickness",
+        "width*height",
+        "width*diameter",
+        "width*thickness",
+        "height*diameter",
+        "height*thickness",
+        "diameter*thickness",
+        "width*height*diameter",
+        "width*height*thickness",
+        "width*diameter*thickness",
+        "height*diameter*thickness",
+        "width*height*diameter*thickness"
+      )) {
         for (stat in c("AdjRsq", "SBC")) {
-          statsArray[
-            as.character(threshold),
-            accession, 
-            model, 
-            stat] <- loadup_df[loadup_df$Name == model,stat]
+          statsArray[as.character(threshold),
+                     accession,
+                     model,
+                     stat] <- loadup_df[loadup_df$Name == model, stat]
         }
       }
     }
@@ -538,103 +617,93 @@ main <- function() {
         sep = ""
       ),
       row.names = FALSE
-  )
-  csvR2Frame <<- data.frame(Dataset = character(), Graph = character(), R2 = double(), Mode = character())
-  
-  statFrame <- data.frame(matrix(ncol = 16, nrow = 0))
-  
-  RsqFrame <- statFrame
-  SBCFrame <- statFrame
-  
-  dimKeyPair <- list("width" = "W", "height" = "H", "diameter" = "D", "thickness" = "Th", 
-                     "width*height" = "WH", "width*diameter" = "WD", "width*thickness" = "WT", "height*diameter" = "HD", "height*thickness" = "HT", "diameter*thickness" = "DT", 
-                     "width*height*diameter" = "WHD", "width*height*thickness" = "WHT", "width*diameter*thickness" = "WDT", "height*diameter*thickness" = "HDT", 
-                     "width*height*diameter*thickness" = "WHDT")
-  
-    for (accession in c("242", "246", "319", "325", "326", "390", "572", "580", "582", "584", "585", "839", "845", "854")) {
-      RsqFrame <- rbind(RsqFrame, 
-                        data.frame(
-                              accession, 
-                              statsArray[toString(threshold), toString(accession), "width", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "height", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "diameter", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*height", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*diameter", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "height*diameter", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "height*thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "diameter*thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*height*diameter", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*height*thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*diameter*thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "height*diameter*thickness", "AdjRsq"],
-                              statsArray[toString(threshold), toString(accession), "width*height*diameter*thickness", "AdjRsq"]
-                          )
-                       )
-      
-      SBCFrame <- rbind(SBCFrame, 
-                        c(accession, 
-                          statsArray[toString(threshold), toString(accession), "width", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "height", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "diameter", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*height", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*diameter", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "height*diameter", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "height*thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "diameter*thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*height*diameter", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*height*thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*diameter*thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "height*diameter*thickness", "SBC"],
-                          statsArray[toString(threshold), toString(accession), "width*height*diameter*thickness", "SBC"]
-                        )
+    )
+    csvR2Frame <<-
+      data.frame(
+        Dataset = character(),
+        Graph = character(),
+        R2 = double(),
+        Mode = character()
       )
+    
+    statFrame <- data.frame(matrix(ncol = 16, nrow = 0))
+    
+    RsqFrame <- statFrame
+    SBCFrame <- statFrame
+    
+    dimKeyPair <- list(
+      "width" = "W",
+      "height" = "H",
+      "diameter" = "D",
+      "thickness" = "Th",
+      "width*height" = "WH",
+      "width*diameter" = "WD",
+      "width*thickness" = "WT",
+      "height*diameter" = "HD",
+      "height*thickness" = "HT",
+      "diameter*thickness" = "DT",
+      "width*height*diameter" = "WHD",
+      "width*height*thickness" = "WHT",
+      "width*diameter*thickness" = "WDT",
+      "height*diameter*thickness" = "HDT",
+      "width*height*diameter*thickness" = "WHDT"
+    )
+    
+    modelaliases <- c(
+      "width",
+      "height",
+      "diameter",
+      "thickness",
+      "width*height",
+      "width*diameter",
+      "width*thickness",
+      "height*diameter",
+      "height*thickness",
+      "diameter*thickness",
+      "width*height*diameter",
+      "width*height*thickness",
+      "width*diameter*thickness",
+      "height*diameter*thickness",
+      "width*height*diameter*thickness"
+    )
+    
+    for (accession in SWITCHBOARD.strACCESSIONLIST) {
+      RSQinsert <- c(accession)
+      SBCinsert <- c(accession)
+      for (model in c(1:length(modelaliases))) {
+        RSQinsert[model + 1] <-
+          statsArray[toString(threshold), toString(accession), modelaliases[model], "AdjRsq"]
+        SBCinsert[model + 1] <-
+          statsArray[toString(threshold), toString(accession), modelaliases[model], "SBC"]
+      }
+      
+      RsqFrame <- rbind(RsqFrame, RSQinsert)
+      SBCFrame <- rbind(SBCFrame, SBCinsert)
     }
-  colnames(RsqFrame) <- c("Accession",
-                          "W",
-                          "H",
-                          "D",
-                          "Th",
-                          "WH",
-                          "WD",
-                          "WT",
-                          "HD",
-                          "HT",
-                          "DT",
-                          "WHD",
-                          "WHT",
-                          "WDT",
-                          "HDT",
-                          "HWDT")
-  write.csv(
-    RsqFrame,
-    paste0(SWITCHBOARD.DIRECTORY, "Correlation_Analyses\\Rsq_T_", threshold, ".csv"),
-    row.names = FALSE
-  )
-  colnames(SBCFrame) <- c("Accession",
-                          "W",
-                          "H",
-                          "D",
-                          "Th",
-                          "WH",
-                          "WD",
-                          "WT",
-                          "HD",
-                          "HT",
-                          "DT",
-                          "WHD",
-                          "WHT",
-                          "WDT",
-                          "HDT",
-                          "HWDT")
-  write.csv(
-    SBCFrame,
-    paste0(SWITCHBOARD.DIRECTORY, "Correlation_Analyses\\SBC_T_", threshold, ".csv"),
-    row.names = FALSE
-  )
+    
+    colnames(RsqFrame) <- SWITCHBOARD.strMODELLIST
+    write.csv(
+      RsqFrame,
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "Correlation_Analyses\\Rsq_T_",
+        threshold,
+        ".csv"
+      ),
+      row.names = FALSE
+    )
+    
+    colnames(SBCFrame) <- SWITCHBOARD.strMODELLIST
+    write.csv(
+      SBCFrame,
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "Correlation_Analyses\\SBC_T_",
+        threshold,
+        ".csv"
+      ),
+      row.names = FALSE
+    )
   }
 }
 
