@@ -553,6 +553,15 @@ main <- function() {
     PARLIER$dry_weight[PARLIER$accession == accession] <-
       PARLIER$fresh_weight * (accession_set[2] / accession_set[1])
   }
+  
+  PARLIER <- PARLIER %>%
+    mutate(Eccentricity = ((height^2 - width^2)/height)) %>%
+    mutate(PartRatio = ((height-width)/(height+width))^2) %>%
+    mutate(Pade_Peri = pi*(height+width)*(64-3*PartRatio)/(64-16*PartRatio)) %>%
+    mutate(Pade_Derived_Diam = Pade_Peri/pi) %>%
+    mutate(diamRatio = Pade_Derived_Diam/diameter)
+  
+  
   #print(PARLIER$fresh_weight*as.numeric(accession_set[3])/as.numeric(accession[1]))
   #print(PARLIER$dry_weight1)
   
@@ -560,6 +569,7 @@ main <- function() {
   
   for (threshold in c(100, 95, 90)) {
     parlVersion <- ACCESSORY.ErrorCleaning(PARLIER, threshold)
+    print(head(parlVersion))    
     fileTitle <- paste0(SWITCHBOARD.DIRECTORY,
                         "ref_PARL0",
                         ifelse(threshold != 100, paste0("C_", threshold), ""),
