@@ -4,7 +4,7 @@
 setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script")
 
 #Load relevant packages into library
-#library("xlsx")
+
 library("dplyr")
 library("tibble")
 library("rsq")
@@ -12,19 +12,36 @@ library("car")
 library("Rcmdr")
 library("hash")
 
+# SWITCHBOARD variable/function setup to quickly adjust elements present throughout the program.
+# Hacky way of getting consistent legend generation, also controls value rounding over the program
+#   and some constant definitions
+
+#   Dataset over which analysis is done.
 SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
 
-#SWITCHBOARD
-#   Hacky way of getting consistent legend generation, also controls value rounding over the program
-#     and some constant definitions
-
-SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
+#   Working directory for program to draw files from.
 SWITCHBOARD.DIRECTORY <-
   "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
+
+#   String storage for quick legend generation.
+SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
 SWITCHBOARD.strALLDATA <- "Entire"
+
+#   Removing any amount of datapoints based on researcher's discretion if a datapoint cannot be 
+#     repaired or restored from earlier records.
+SWITCHBOARD.funcHARDREMOVE <- function(dataset, padID, reason) {
+  dataset <- filter(dataset, completeID != paste0("PARL ", padID))
+  print(paste0("Removed PARL_", padID, " for: ", reason))
+}
+
+#   Constant for values presentation in figures.
 SWITCHBOARD.roundto <- 3
+
+#   Field determining how outliers are sorted in successively filtered versions of the data.
 SWITCHBOARD.strCLEANONLIST <-
   c("D_div_W")
+
+#   List-style string/constant storages for efficient iteration.
 SWITCHBOARD.strACCESSIONLIST <-
   c(
     "242",
@@ -83,7 +100,6 @@ SWITCHBOARD.FRESH_DRY_RAWS <- list(
 SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS <-
   hash(SWITCHBOARD.strACCESSIONLIST, SWITCHBOARD.FRESH_DRY_RAWS)
 
-
 SWITCHBOARD.strQQMEASURESLIST <-
   c(
     "fresh_weight",
@@ -99,7 +115,7 @@ SWITCHBOARD.strQQMEASURESLIST <-
     "dry_weight"
   )
 
-#List of all plots  to be generated.
+#   Centralized list of all individual plots to be generated.
 SWITCHBOARD.GRAPHS_LIST <- tribble(
   ~ xname, ~ yname,
   'width',     'fresh_weight',
@@ -121,23 +137,8 @@ SWITCHBOARD.GRAPHS_LIST <- tribble(
   #  'mul_HWDT', 'fresh_weight'
 )
 
-#R^2 Output csv dataframes
-csvR2Frame <-
-  data.frame(
-    Dataset = character(),
-    Graph = character(),
-    R2 = double(),
-    Mode = character()
-  )
-
-#List of anomalous datapads--TODO: Establish statistical, heuristic basis for removal
-errorPads <-
-  vector() #c("PARL 585-1-8", "PARL 319-1-1", "PARL 854-2-3", "PARL 580-1-2", "PARL 584-1-1", "PARL 242-4-3")
-
-#FUNCTION DEFINITIONS
-
-#Just for easy parameterization in the Generator function
-ACCESSORY.colnameToLegend <- function(column_text) {
+#   Translation function for converting csv field names to human-readable strings.
+SWITCHBOARD.colnameToLegend <- function(column_text) {
   legname <- switch(
     column_text,
     "width" = "Width",
@@ -155,18 +156,32 @@ ACCESSORY.colnameToLegend <- function(column_text) {
   return(legname)
 }
 
-#Functions for error removal
-#tagBySTDDEV--Called by ErrorCleaning before (in?) removeByID, this tags observations
+# Dataframe for outputting R^2 values of correlation plots
+csvR2Frame <-
+  data.frame(
+    Dataset = character(),
+    Graph = character(),
+    R2 = double(),
+    Mode = character()
+  )
+
+
+
+# From here on, three main classes of function are defined.
+#   |> main(), which is defined last and is responsible for all other function calls
+#   |> PIPELINE, an object holding functions that call each other in a nested fashion
+#   |> ACCESSORY, an object holding functions not part of the central analysis, but which are still called by main()
+
+# The following ACCESSORY Functions help with error removal.
+# tagBySTDDEV -- Called by ErrorCleaning before (in?) removeByID, this tags observations
 # if they are more than n = 3 standard deviations away from the mean in a given parameter.
 # However, may have to remove as fresh weight is not normally distributed.
 
 ACCESSORY.tagBySTDDEV <-
   function(dataset, an_accession, threshold) {
     blacksite <- vector()
-    #print(blacksite)
     dataset_accessionfilter <-
       filter(dataset, accession == an_accession)
-    #for (columnname in c("H_div_W", "FW_div_W", "FW_div_D")) {
     for (columnname in SWITCHBOARD.strCLEANONLIST) {
       tempcol <-
         dataset_accessionfilter[[columnname]]
@@ -182,19 +197,15 @@ ACCESSORY.tagBySTDDEV <-
         )
       blacklist <- as.vector(detention$completeID)
       blacksite <- c(blacksite, blacklist)
-      #print(c("List:", blacklist))
-      #print(c("Site:", blacksite))
-      #print(c("Column:", columnname))
     }
     return(blacksite)
   }
 
-#ErrorCleaning--
+# ErrorCleaning uses tagBySTDDEV to remove datapoint rows from the frame according to whether they exceed a two-tailed
+#   percentile threshold.
 ACCESSORY.ErrorCleaning <- function(dataset, perc_threshold) {
   rawblock <- dataset
-  dev_threshold <- qnorm((100 - ((
-    100 - perc_threshold
-  ) / 2)) / 100)
+  dev_threshold <- qnorm((100 - ((100 - perc_threshold ) / 2)) / 100)
   for (accession in SWITCHBOARD.strACCESSIONLIST) {
     blacksite <-
       ACCESSORY.tagBySTDDEV(dataset, accession, dev_threshold)
@@ -205,7 +216,8 @@ ACCESSORY.ErrorCleaning <- function(dataset, perc_threshold) {
   return(finalDataset)
 }
 
-#General Data Subset Function
+# DataSubset returns a subsection of the dataframe which only contains a particular accession.
+#   Used to make plotting code cleaner.
 
 ACCESSORY.DataSubset <-
   function(filter_data,
@@ -230,8 +242,8 @@ ACCESSORY.DataSubset <-
     }
   }
 
-#Report Generation
-###Plotter function which creates labeled figure, regressions
+# This PIPELINE function, PlotRegress, takes two fields of the analysis dataframe and generates linear or double-log
+#   regression plots given the entire dataset or only a particular accession.
 
 PIPELINE.PlotRegress = function(x,
                                 y,
@@ -245,8 +257,8 @@ PIPELINE.PlotRegress = function(x,
   if (is.null(subset) == TRUE) {
     return(NULL)
   }
-  xlab = ACCESSORY.colnameToLegend(x)
-  ylab = ACCESSORY.colnameToLegend(y)
+  xlab = SWITCHBOARD.colnameToLegend(x)
+  ylab = SWITCHBOARD.colnameToLegend(y)
   subslice = select(subset, x, y)
   x_data = subslice[[x]] #colnameToCol(x, subslice)
   y_data = subslice[[y]] #colnameToCol(y, subslice)
@@ -315,7 +327,8 @@ PIPELINE.PlotRegress = function(x,
   }
 }
 
-###Generator function which generates plots using Plotter over all of the axes combinations
+# CorrPlotsGenerator iterates over the SWITCHBOARD.GRAPHS_LIST to generate all of the figures and place them in 
+#   a single .pdf file. TODO: Generate individual .png files for in-document placement
 
 PIPELINE.CorrPlotsGenerator <-
   function(figure_guide,
@@ -334,6 +347,8 @@ PIPELINE.CorrPlotsGenerator <-
       }
     }
   }
+
+# qqGen creates QQ plots for each measure, for each accession, for a particular level of data filtration.
 
 ACCESSORY.qqGen <-
   function(accession, column, dataset_in, threshold) {
@@ -359,6 +374,8 @@ ACCESSORY.qqGen <-
     qqPlot(subsetA[[column]], main = title, envelope = 0.95)
     dev.off()
   }
+
+# qqGenLog does the same thing as qqGen, but applies a log transformation to the data first.
 
 ACCESSORY.qqGenLog <-
   function(accession, column, dataset_in, threshold) {
@@ -525,6 +542,8 @@ main <- function() {
   workingFilenames <- list()
   
   PARLIER <- SWITCHBOARD.csvMAINFILE
+  
+  SWITCHBOARD.funcHARDREMOVE(PARLIER, "319-1-5", "Unreasonable fresh weight for size - error could not be repaired or restored.")
   
   #Data compatibility modifications
   PARLIER <- mutate(PARLIER, pad_id = 1)
