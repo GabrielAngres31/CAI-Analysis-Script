@@ -18,7 +18,7 @@ library("hash")
 
 #   Dataset over which analysis is done.
 SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
-
+  
 #   Working directory for program to draw files from.
 SWITCHBOARD.DIRECTORY <-
   "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
@@ -78,6 +78,15 @@ SWITCHBOARD.strMODELLIST <-
     "WDT",
     "HDT",
     "HWDT"
+  )
+
+SWITCHBOARD.strTUKEYMEASURESLIST <-
+  c(
+    "width",
+    "thickness",
+    "height",
+    "fresh_weight",
+    "diameter"
   )
 
 SWITCHBOARD.FRESH_DRY_RAWS <- list(
@@ -226,7 +235,6 @@ ACCESSORY.DataSubset <-
     if (filter_data == SWITCHBOARD.strALLDATA) {
       F_data <- dataset_in
     } else {
-      print(dataset_in)
       F_data <- filter(dataset_in, dataset == filter_data)
     }
     if (filter_accession == SWITCHBOARD.strALLACCESSIONS) {
@@ -425,6 +433,87 @@ ACCESSORY.qqGenSqrt <-
     dev.off()
   }
 
+ACCESSORY.tukeyAnalyzer <- function(dataset, threshold, measure) {
+  
+  
+  generate_label_df <- function(tukey_in, variable){
+    # Extract labels and factor levels from Tukey post-hoc
+    Tukey.levels <- tukey_in[[variable]][,4]
+    Tukey.labels <- data.frame(multcompLetters(Tukey.levels)['Letters'])
+    
+    #I need to put the labels in the same order as in the boxplot :
+    Tukey.labels$accession=rownames(Tukey.labels)
+    Tukey.labels=Tukey.labels[order(Tukey.labels$accession) , ]
+    return(Tukey.labels)
+  }
+  
+  model=lm( dataset[[measure]] ~ factor(dataset$accession) )
+  ANOVA=aov(model)
+  TUKEY <- TukeyHSD(x=ANOVA, 'factor(dataset$accession)', conf.level=0.95)
+  LABELS <- generate_label_df(TUKEY, "factor(dataset$accession)")
+  
+  tukeyMeanMaker <- function(tukey_results) {
+    png(
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "TukeyPlots\\Pairwise_Mean_Comparisons\\",
+        measure,
+        "--",
+        threshold,
+        "th.png"
+      )
+    )
+    plot(tukey_results, las=1 , col="brown")
+    dev.off()
+  }
+  
+  tukeyHypergraphMaker <- function(tukey_labels) {
+    
+    groupElements <- c("a")
+    for (grouptags in tukey_labels$Letters) {
+      for (char in strsplit(grouptags, "")) {
+        groupElements <- sort(unique(append(groupElements, char)))
+      }
+    }
+    
+    collectGroup <- function(tukeyResults, targetgroup) {
+      basket <- c()
+      for (accession in row.names(tukeyResults)) {
+        if (grepl(targetgroup, tukeyResults[accession, 1])) {
+          basket <- append(basket, accession)
+        }
+      }
+      return(basket)
+    }
+    
+    hypergroups <- as.list(rep(".", length(groupElements))) 
+    names(hypergroups) <- as.vector(groupElements)
+    print(hypergroups)
+    for (group in groupElements) {
+      hypergroups[[group]] <- collectGroup(tukey_labels, group)
+    }
+    print("Point 5")
+    print(hypergroups)
+    
+    generated_hypergraph <- hypergraph_from_edgelist(hypergroups)
+    png(
+      paste0(
+        SWITCHBOARD.DIRECTORY,
+        "TukeyPlots\\Representative_Hypergraphs\\",
+        measure,
+        "--",
+        threshold,
+        "th.png"
+      )
+    )
+    plot(generated_hypergraph)
+    dev.off() 
+  }
+  
+  tukeyMeanMaker(TUKEY)
+  tukeyHypergraphMaker(LABELS)
+}
+
 PIPELINE.PlotCompiler <- function(dataset_in, threshold) {
   for (dataset in c(SWITCHBOARD.strALLDATA)) {
     for (accession in c(
@@ -452,6 +541,9 @@ PIPELINE.PlotCompiler <- function(dataset_in, threshold) {
     for (measure in SWITCHBOARD.strQQMEASURESLIST) {
       ACCESSORY.qqGen(accession, measure, dataset_in, threshold)
     }
+  }
+  for (measure in SWITCHBOARD.strTUKEYMEASURESLIST) {
+    ACCESSORY.tukeyAnalyzer(dataset_in, threshold, measure)
   }
 }
 
@@ -564,14 +656,11 @@ main <- function() {
   PARLIER <- merge(PARLIER, areaFrame, by = "completeID")
   
   #Add Dry Weight measure for further analysis
-  browser()
   
   PARLIER$dry_weight <- 0
   for (accession in keys(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS)) {
     accession_set <-
       values(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS[accession])
-    print(length(PARLIER$dry_weight[PARLIER$accession == accession]))
-    print(length(PARLIER$fresh_weight * (accession_set[2] / accession_set[1])))
     PARLIER$dry_weight[PARLIER$accession == accession] <-
       PARLIER$fresh_weight[PARLIER$accession == accession] * (accession_set[2] / accession_set[1])
   }
@@ -583,15 +672,10 @@ main <- function() {
     mutate(Pade_Derived_Diam = Pade_Peri/pi) %>%
     mutate(diamRatio = Pade_Derived_Diam/diameter)
   
-  
-  #print(PARLIER$fresh_weight*as.numeric(accession_set[3])/as.numeric(accession[1]))
-  #print(PARLIER$dry_weight1)
-  
-  #print(PARLIER)
-  
   for (threshold in c(100, 95, 90)) {
+    
     parlVersion <- ACCESSORY.ErrorCleaning(PARLIER, threshold)
-    print(head(parlVersion))    
+    
     fileTitle <- paste0(SWITCHBOARD.DIRECTORY,
                         "ref_PARL0",
                         ifelse(threshold != 100, paste0("C_", threshold), ""),
