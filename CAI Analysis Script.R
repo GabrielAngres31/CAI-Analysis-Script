@@ -564,13 +564,16 @@ main <- function() {
   PARLIER <- merge(PARLIER, areaFrame, by = "completeID")
   
   #Add Dry Weight measure for further analysis
+  browser()
   
   PARLIER$dry_weight <- 0
   for (accession in keys(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS)) {
     accession_set <-
       values(SWITCHBOARD.AVG_FRESH_DRY_WEIGHTS[accession])
+    print(length(PARLIER$dry_weight[PARLIER$accession == accession]))
+    print(length(PARLIER$fresh_weight * (accession_set[2] / accession_set[1])))
     PARLIER$dry_weight[PARLIER$accession == accession] <-
-      PARLIER$fresh_weight * (accession_set[2] / accession_set[1])
+      PARLIER$fresh_weight[PARLIER$accession == accession] * (accession_set[2] / accession_set[1])
   }
   
   PARLIER <- PARLIER %>%
