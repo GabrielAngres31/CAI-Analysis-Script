@@ -11,6 +11,8 @@ library("rsq")
 library("car")
 library("Rcmdr")
 library("hash")
+library("multcompView")
+library("HyperG")
 
 # SWITCHBOARD variable/function setup to quickly adjust elements present throughout the program.
 # Hacky way of getting consistent legend generation, also controls value rounding over the program
@@ -346,12 +348,25 @@ PIPELINE.CorrPlotsGenerator <-
     for (i in 1:nrow(figure_guide)) {
       for (graphmode in c("Double Log", "Double Linear")) {
         row <- figure_guide[i, ]
+        png(
+          paste0(
+            SWITCHBOARD.DIRECTORY,
+            "Intermeasure_Correlations\\",
+            accession,
+            "--",
+            row$xname,
+            "_vs_",
+            row$yname,
+            ".png"
+          )
+        )
         PIPELINE.PlotRegress(row$xname,
                              row$yname,
                              year,
                              accession,
                              dataset_in,
                              graphmode)
+        dev.off()
       }
     }
   }
@@ -488,12 +503,9 @@ ACCESSORY.tukeyAnalyzer <- function(dataset, threshold, measure) {
     
     hypergroups <- as.list(rep(".", length(groupElements))) 
     names(hypergroups) <- as.vector(groupElements)
-    print(hypergroups)
     for (group in groupElements) {
       hypergroups[[group]] <- collectGroup(tukey_labels, group)
     }
-    print("Point 5")
-    print(hypergroups)
     
     generated_hypergraph <- hypergraph_from_edgelist(hypergroups)
     png(
