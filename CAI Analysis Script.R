@@ -498,7 +498,7 @@ PIPELINE.tukeyAnalyzer <- function(dataset, threshold, measure) {
         "th.png"
       )
     )
-    plot(tukey_results, las=1 , col="brown")
+    plot(tukey_results, las=1 , col="gray29")
     dev.off()
   }
   
@@ -539,6 +539,16 @@ PIPELINE.tukeyAnalyzer <- function(dataset, threshold, measure) {
       )
     )
     plot(generated_hypergraph)
+    text(0, 1.25, 
+         cex = 1.75,
+         paste0(
+           "Hypergraph of ", 
+           SWITCHBOARD.colnameToLegend(measure),
+           " - Threshold: ",
+           threshold,
+           "th"
+           )
+         )
     dev.off() 
   }
   
@@ -870,4 +880,4 @@ main <- function() {
 
 main()
 
-cat("Program Finished!")
+cat("Program Finished!\n")
