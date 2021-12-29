@@ -629,46 +629,61 @@ ACCESSORY.allSubsetsTable <- function (dataset) {
 }
 
 cat("Constructing All-Subsets Linear Regression Dataframe Shell...\n")
-statsArray <- array(1:1350,
-                    dim = c(3, 15, 15, 2),
+
+SUBSETS_STATS.thresholds <-  c("100", "95", "90")
+SUBSETS_STATS.accessions <- c(
+  "All",
+  "242",
+  "246",
+  "319",
+  "325",
+  "326",
+  "390",
+  "572",
+  "580",
+  "582",
+  "584",
+  "585",
+  "839",
+  "845",
+  "854"
+)
+SUBSETS_STATS.models <- c(
+  "width",
+  "height",
+  "diameter",
+  "thickness",
+  "width*height",
+  "width*diameter",
+  "width*thickness",
+  "height*diameter",
+  "height*thickness",
+  "diameter*thickness",
+  "width*height*diameter",
+  "width*height*thickness",
+  "width*diameter*thickness",
+  "height*diameter*thickness",
+  "width*height*diameter*thickness"
+)
+SUBSETS_STATS.statistics <- c("AdjRsq", "SBC")
+
+statsArray <- array(1:as.numeric(length(SUBSETS_STATS.thresholds) 
+                                 * length(SUBSETS_STATS.accessions) 
+                                 * length(SUBSETS_STATS.models) 
+                                 * length(SUBSETS_STATS.statistics)
+                                 ),
+                    dim = c(length(SUBSETS_STATS.thresholds),
+                            length(SUBSETS_STATS.accessions), 
+                            length(SUBSETS_STATS.models    ), 
+                            length(SUBSETS_STATS.statistics)
+                            ),
                     dimnames = list(
-                      c("100", "95", "90"),
-                      c(
-                        "All",
-                        "242",
-                        "246",
-                        "319",
-                        "325",
-                        "326",
-                        "390",
-                        "572",
-                        "580",
-                        "582",
-                        "584",
-                        "585",
-                        "839",
-                        "845",
-                        "854"
-                      ),
-                      c(
-                        "width",
-                        "height",
-                        "diameter",
-                        "thickness",
-                        "width*height",
-                        "width*diameter",
-                        "width*thickness",
-                        "height*diameter",
-                        "height*thickness",
-                        "diameter*thickness",
-                        "width*height*diameter",
-                        "width*height*thickness",
-                        "width*diameter*thickness",
-                        "height*diameter*thickness",
-                        "width*height*diameter*thickness"
-                      ),
-                      c("AdjRsq", "SBC")
-                    ))
+                      SUBSETS_STATS.thresholds,
+                      SUBSETS_STATS.accessions,
+                      SUBSETS_STATS.models    ,
+                      SUBSETS_STATS.statistics
+                    )
+                    )
 
 cat("\n-----------------\nRUNNING MAIN FUNCTION\n-----------------\n")
 main <- function() {
