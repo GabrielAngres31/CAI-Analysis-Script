@@ -755,23 +755,7 @@ main <- function() {
     cat("::::| Extracting All-Subsets Linear Regression R^2/SBC...\n")
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       loadup_df <- ACCESSORY.allSubsetsTable(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion))
-      for (model in c(
-        "width",
-        "height",
-        "diameter",
-        "thickness",
-        "width*height",
-        "width*diameter",
-        "width*thickness",
-        "height*diameter",
-        "height*thickness",
-        "diameter*thickness",
-        "width*height*diameter",
-        "width*height*thickness",
-        "width*diameter*thickness",
-        "height*diameter*thickness",
-        "width*height*diameter*thickness"
-      )) {
+      for (model in SUBSETS_STATS.models) {
         for (stat in c("AdjRsq", "SBC")) {
           statsArray[as.character(threshold),
                      accession,
@@ -834,33 +818,14 @@ main <- function() {
       "width*height*diameter*thickness" = "WHDT"
     )
     
-    modelaliases <- c(
-      "width",
-      "height",
-      "diameter",
-      "thickness",
-      "width*height",
-      "width*diameter",
-      "width*thickness",
-      "height*diameter",
-      "height*thickness",
-      "diameter*thickness",
-      "width*height*diameter",
-      "width*height*thickness",
-      "width*diameter*thickness",
-      "height*diameter*thickness",
-      "width*height*diameter*thickness"
-    )
-    
-    
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       RSQinsert <- c(accession)
       SBCinsert <- c(accession)
-      for (model in c(1:length(modelaliases))) {
+      for (model in c(1:length(SUBSETS_STATS.models))) {
         RSQinsert[model + 1] <-
-          statsArray[toString(threshold), toString(accession), modelaliases[model], "AdjRsq"]
+          statsArray[toString(threshold), toString(accession), SUBSETS_STATS.models[model], "AdjRsq"]
         SBCinsert[model + 1] <-
-          statsArray[toString(threshold), toString(accession), modelaliases[model], "SBC"]
+          statsArray[toString(threshold), toString(accession), SUBSETS_STATS.models[model], "SBC"]
       }
       
       RsqFrame <- rbind(RsqFrame, RSQinsert)
