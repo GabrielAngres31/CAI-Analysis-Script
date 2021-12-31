@@ -442,6 +442,8 @@ PIPELINE.qqGenLog <-
     dev.off()
   }
 
+# qqGenLog does the same thing as qqGen, but applies a square-root transformation to the data first.
+
 cat("::| QQ Square Root Measure Plotter\n")
 
 PIPELINE.qqGenSqrt <-
@@ -561,20 +563,7 @@ PIPELINE.PlotCompiler <- function(dataset_in, threshold) {
   for (dataset in c(SWITCHBOARD.strALLDATA)) {
     for (accession in c(
       SWITCHBOARD.strALLACCESSIONS,
-      "242",
-      "246",
-      "319",
-      "325",
-      "326",
-      "390",
-      "572",
-      "580",
-      "582",
-      "584",
-      "585",
-      "839",
-      "845",
-      "854"
+      SWITCHBOARD.strACCESSIONLIST
     )) {
       PIPELINE.CorrPlotsGenerator(SWITCHBOARD.GRAPHS_LIST, dataset, accession, dataset_in)
     }
@@ -619,7 +608,8 @@ ACCESSORY.allSubsetsTable <- function (dataset) {
                                  Name = iter_string,
                                  AdjRsq = iter_summ[["adj.r.squared"]],
                                  SBC = BIC(iter_model)
-                               ))
+                               )
+                         )
           }
         }
       }
@@ -633,22 +623,9 @@ cat("Constructing All-Subsets Linear Regression Dataframe Shell...\n")
 SUBSETS_STATS.thresholds <-  c("100", "95", "90")
 SUBSETS_STATS.accessions <- c(
   "All",
-  "242",
-  "246",
-  "319",
-  "325",
-  "326",
-  "390",
-  "572",
-  "580",
-  "582",
-  "584",
-  "585",
-  "839",
-  "845",
-  "854"
+  SWITCHBOARD.strACCESSIONLIST
 )
-SUBSETS_STATS.models <- c(
+SUBSETS_STATS.modelnames <- c(
   "width",
   "height",
   "diameter",
@@ -665,22 +642,28 @@ SUBSETS_STATS.models <- c(
   "height*diameter*thickness",
   "width*height*diameter*thickness"
 )
+SUBSETS_STATS.abbreviate <- c(
+  "W",     "H",   "D",  "Th",
+  "WH",   "WD",  "WT",  "HD", "HT", "DT",
+  "WHD", "WHT", "WDT", "HDT",
+  "WHDT"
+)
 SUBSETS_STATS.statistics <- c("AdjRsq", "SBC")
 
 statsArray <- array(1:as.numeric(length(SUBSETS_STATS.thresholds) 
                                  * length(SUBSETS_STATS.accessions) 
-                                 * length(SUBSETS_STATS.models) 
+                                 * length(SUBSETS_STATS.modelnames) 
                                  * length(SUBSETS_STATS.statistics)
                                  ),
                     dim = c(length(SUBSETS_STATS.thresholds),
                             length(SUBSETS_STATS.accessions), 
-                            length(SUBSETS_STATS.models    ), 
+                            length(SUBSETS_STATS.modelnames), 
                             length(SUBSETS_STATS.statistics)
                             ),
                     dimnames = list(
                       SUBSETS_STATS.thresholds,
                       SUBSETS_STATS.accessions,
-                      SUBSETS_STATS.models    ,
+                      SUBSETS_STATS.modelnames,
                       SUBSETS_STATS.statistics
                     )
                     )
@@ -800,23 +783,8 @@ main <- function() {
     RsqFrame <- statFrame
     SBCFrame <- statFrame
     
-    dimKeyPair <- list(
-      "width" = "W",
-      "height" = "H",
-      "diameter" = "D",
-      "thickness" = "Th",
-      "width*height" = "WH",
-      "width*diameter" = "WD",
-      "width*thickness" = "WT",
-      "height*diameter" = "HD",
-      "height*thickness" = "HT",
-      "diameter*thickness" = "DT",
-      "width*height*diameter" = "WHD",
-      "width*height*thickness" = "WHT",
-      "width*diameter*thickness" = "WDT",
-      "height*diameter*thickness" = "HDT",
-      "width*height*diameter*thickness" = "WHDT"
-    )
+    dimKeyPair <- as.list(SUBSETS_STATS.abbreviate)
+    names(dimKeyPair) <- as.vector(SUBSETS_STATS.modelnames)
     
     for (accession in SWITCHBOARD.strACCESSIONLIST) {
       RSQinsert <- c(accession)
