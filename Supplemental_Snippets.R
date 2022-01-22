@@ -24,3 +24,4 @@ summary(lm(Area ~ Theo_Area, data = ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA,
 #   Example for accession 242 on a 95% filter:
 
 summary(lm(Area ~ Theo_Area, data = ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, 242, ACCESSORY.ErrorCleaning(db_shell, 95)))) 
+

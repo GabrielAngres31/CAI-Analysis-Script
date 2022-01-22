@@ -1,12 +1,28 @@
-#Box Version 1.0
+# This program was written to automate on a large scale the statistical analyses
+# done in R, in order to save time - so that minor changes to analytical processes
+# may be quickly reflected across the entire analysis. This allows hours of work
+# to be repeated, with or without changes, in less than two minutes while analyzing 
+# thousands of datapoints.
+#
+# The program is interspersed with diagnostic output messages ("cat(...)") that 
+# output to the console and indicate the progression of the program.
+# 
+# The author has not had any industry programming experience - hence, while an
+# attempt has been made to document and explain the code's function to the maximum
+# extent possible, there may be notable deviations from accepted coding practice.
+# Contact gangres@nevada.unr.edu for questions regarding the code's function and 
+# behavior.
+
 
 
 #Establish working directory with target files.
 
+cat("Setting Working Directory...\n")
 setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script")
 
 #Load relevant packages into library
 
+cat("Loading Packages...\n")
 library("dplyr")
 library("tibble")
 library("rsq")
@@ -19,37 +35,48 @@ library("HyperG")
 # SWITCHBOARD variable/function setup to quickly adjust elements present throughout the program.
 # Hacky way of getting consistent legend generation, also controls value rounding over the program
 #   and some constant definitions
+# This section provides a component of automation - allowing changes to common 
+# elements throughout the program to be made in a centralized manner that propagates 
+# to all functions and codeblocks which use that information.
 
 #   Dataset over which analysis is done.
-cat("Loading Dataset: PARL0_09092021.csv!\n")
+cat("Loading Dataset of Interest...\n")
 SWITCHBOARD.csvMAINFILE <- read.csv(file = 'PARL0_09092021.csv')
 
-cat("Configuring Program Constants...\n")
+cat("Configuring Program Constants in Switchboard...\n")
 #   Working directory for program to draw files from.
+#   NOTE: This directory should be replaced as appropriate depending on where 
+#   the source files for the program have been downloaded.
+
 SWITCHBOARD.DIRECTORY <-
   "C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\"
 
 #   String storage for quick legend generation.
+#   Where the "magic literals" are defined.
 cat("::| Setting Figure Legend String Tools\n")
 SWITCHBOARD.strALLACCESSIONS <- "All Accessions"
 SWITCHBOARD.strALLDATA <- "Entire"
 
 #   Constant for values presentation in figures.
 
-cat("::| Setting Global Rounding Value\n")
+cat("::| Setting Global Rounding Value for Figures to ")
 SWITCHBOARD.roundto <- 3
+cat(SWITCHBOARD.roundto, "decimal places\n")
 
 #   Field determining how outliers are sorted in successively filtered versions of the data.
-cat("::| Choosing Data Cleaning Basis\n")
+cat("::| Choosing Data Cleaning Basis to ")
 SWITCHBOARD.strCLEANONLIST <-
   c("D_div_W")
+cat(SWITCHBOARD.strCLEANONLIST, "\n")
 
+cat("::| Setting Dataset Thresholds to [ ")
 SWITCHBOARD.strTHRESHOLDS <-
   c(
     "100",
     "95",
     "90"
   )
+cat(SWITCHBOARD.strTHRESHOLDS, "]\n")
 
 #   List-style string/constant storages for efficient iteration.
 cat("::| Constructing Accession List\n")
@@ -228,8 +255,13 @@ csvR2Frame <-
 # However, may have to remove as fresh weight is not normally distributed.
 
 cat("Constructing Accessory Functions...\n")
-cat("::| Filtering Criterion Calculator\n")
 
+cat("::| Quick .PNG Maker")
+ACCESSORY.quick_png <- function(directory, subfolder, filenamestring) {
+  png(paste0(directory, "\\", subfolder, "\\", filenamestring, ".png"))
+}
+
+cat("::| Filtering Criterion Calculator\n")
 ACCESSORY.tagBySTDDEV <-
   function(dataset, an_accession, threshold) {
     blacksite <- vector()
@@ -348,32 +380,18 @@ PIPELINE.PlotRegress = function(x,
     )
   )
   plot(
-    x_data,
-    y_data,
+    x_data, y_data,
     type = "p",
     log = ifelse(graphmode == "Double Log", "xy", ""),
     cex = 0.8,
-    sub = paste0(
-      details,
-      ", R^2 =",
-      round(rsquare, SWITCHBOARD.roundto),
-      ", N = ",
-      nrow(subslice)
-    ),
+    sub = paste0(details, ", R^2 =", round(rsquare, SWITCHBOARD.roundto), ", N = ", nrow(subslice)),
     main = paste0(
-      xlab,
-      " vs. ",
-      ylab,
-      "\n",
-      year,
-      " Dataset, ",
-      accession,
-      "Mode - ",
-      graphmode,
+      xlab, " vs. ", ylab, "\n",
+      year, " Dataset, ", accession, 
+      "Mode - ", graphmode,
       collapse = " "
     ),
-    xlab = xlab,
-    ylab = ylab
+    xlab = xlab, ylab = ylab
   )
   if (graphmode == "Double Log") {
     lines(x_data, exp(predict(targetline, newdata = list(x_data = x_data))) , col = "grey")
@@ -414,19 +432,9 @@ PIPELINE.qqGen <-
                            dataset_in = dataset_in)
     title <-
       paste0(accession, ", ", column)
-    png(
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "QQPlot_Images",
-        "\\",
-        column,
-        "--",
-        accession,
-        "_LIN_",
-        threshold,
-        "th.png"
-      )
-    )
+    
+    ACCESSORY.quick_png(SWITCHBOARD.DIRECTORY, "QQPlot_Images", paste0(column, "--", accession, "_LIN_", threshold, "th"))
+    
     qqPlot(subsetA[[column]], main = title, envelope = 0.95)
     dev.off()
   }
@@ -443,19 +451,9 @@ PIPELINE.qqGenLog <-
                            dataset_in = dataset_in)
     title <-
       paste0(accession, ", ", column)
-    png(
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "QQPlot_Images",
-        "\\",
-        column,
-        "--",
-        accession,
-        "_LOG_",
-        threshold,
-        "th.png"
-      )
-    )
+   
+    ACCESSORY.quick_png(SWITCHBOARD.DIRECTORY, "QQPlot_Images", paste0(column, "--", accession, "_LOG_", threshold, "th"))
+
     qqPlot(log(subsetA[[column]]), main = title, envelope = 0.95)
     dev.off()
   }
@@ -470,19 +468,9 @@ PIPELINE.qqGenSqrt <-
       ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, filter_accession = accession, dataset_in)
     title <-
       paste0(accession, ", ", column)
-    png(
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "QQPlot_Images",
-        "\\",
-        column,
-        "--",
-        accession,
-        "_SQRT_",
-        threshold,
-        "th.png"
-      )
-    )
+    
+    ACCESSORY.quick_png(SWITCHBOARD.DIRECTORY, "QQPlot_Images", paste0(column, "--", accession, "_SQRT_", threshold, "th"))
+    
     qqPlot(sqrt(subsetA[[column]]), main = title, envelope = 0.95)
     dev.off()
   }
@@ -508,16 +496,10 @@ PIPELINE.tukeyAnalyzer <- function(dataset, threshold, measure) {
   LABELS <- generate_label_df(TUKEY, "factor(dataset$accession)")
 
   tukeyMeanMaker <- function(tukey_results) {
-    png(
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "TukeyPlots\\Pairwise_Mean_Comparisons\\",
-        measure,
-        "--",
-        threshold,
-        "th.png"
-      )
-    )
+   
+    
+    ACCESSORY.quick_png(SWITCHBOARD.DIRECTORY, "TukeyPlots\\Pairwise_Mean_Comparisons", paste0(measure, "--", threshold, "th"))
+    
     plot(tukey_results, las=1 , col="gray29")
     dev.off()
   }
@@ -548,25 +530,14 @@ PIPELINE.tukeyAnalyzer <- function(dataset, threshold, measure) {
     }
     
     generated_hypergraph <- hypergraph_from_edgelist(hypergroups)
-    png(
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "TukeyPlots\\Representative_Hypergraphs\\",
-        measure,
-        "--",
-        threshold,
-        "th.png"
-      )
-    )
+    
+    ACCESSORY.quick_png(SWITCHBOARD.DIRECTORY, "TukeyPlots\\Representative_Hypergraphs", paste0(measure, "--", threshold, "th"))
+    
     plot(generated_hypergraph)
     text(0, 1.25, 
          cex = 1.75,
          paste0(
-           "Hypergraph of ", 
-           SWITCHBOARD.colnameToLegend(measure),
-           " - Threshold: ",
-           threshold,
-           "th"
+           "Hypergraph of ", SWITCHBOARD.colnameToLegend(measure), " - Threshold: ", threshold, "th"
            )
          )
     dev.off() 
