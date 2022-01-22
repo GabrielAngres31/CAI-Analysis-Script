@@ -619,17 +619,22 @@ ACCESSORY.statfinder <- function (dataset, models_x) {
   } 
   return(models_df)
 }
+
 cat("Accessory Function: Model Stats Compiler...\n")
-ACCESSORY.statextractor <- function(dataset, models_x, array_out, threshold, accession) {
-  loadup_df <- ACCESSORY.statfinder(dataset, models_x)
-  for (model in models_x) {
-    for (stat in c("AdjRsq", "SBC")) {
-      array_out[as.character(threshold),
-                             accession,
-                             model,
-                             stat] <- loadup_df[loadup_df$Name == model, stat]
+ACCESSORY.statextractor <- function(dataset, models_x, array_fill, threshold) {
+  bucket_array <- array_fill
+  for (accession in c(SWITCHBOARD.strALLACCESSIONS, as.vector(SWITCHBOARD.strACCESSIONLIST))) {
+    loadup_df <- ACCESSORY.statfinder(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, dataset), models_x)
+    for (model in models_x) {
+      for (stat in c("AdjRsq", "SBC")) {
+        bucket_array[as.character(threshold),
+                               accession,
+                               model,
+                               stat] <- loadup_df[loadup_df$Name == model, stat]
+      }
     }
   }
+  return(bucket_array)
 }
 
 
@@ -715,7 +720,63 @@ SUBSETS_STATS.2ndgen.statsArray <- array(1:as.numeric(length(SUBSETS_STATS.thres
                                          )
 )
 
-cat("\nDataset Preparation Function...\n")
+cat("\nFrame Filler Function...\n")
+PIPELINE.FrameFiller <- function(modelnames, abbreviate_list, input_statsarray, model_list, pass_name, threshold) {
+  
+  
+  RsqFrame <- data.frame(matrix(ncol = length(modelnames), nrow = 0))
+  SBCFrame <- data.frame(matrix(ncol = length(modelnames), nrow = 0))
+  
+  dimKeyPair <- as.list(abbreviate_list)
+  names(dimKeyPair) <- as.vector(modelnames)
+  
+  for (accession in c(SWITCHBOARD.strALLACCESSIONS, SWITCHBOARD.strACCESSIONLIST)) {
+    RSQinsert <- c(accession)
+    SBCinsert <- c(accession)
+    for (model in c(1:length(modelnames))) {
+      RSQinsert[model + 1] <-
+        input_statsarray[toString(SWITCHBOARD.strTHRESHOLDS[threshold]), toString(accession), modelnames[model], "AdjRsq"]
+      SBCinsert[model + 1] <-
+        input_statsarray[toString(SWITCHBOARD.strTHRESHOLDS[threshold]), toString(accession), modelnames[model], "SBC"]
+    }
+    
+    RsqFrame <- rbind(RsqFrame, RSQinsert)
+    SBCFrame <- rbind(SBCFrame, SBCinsert)
+  }
+  
+  colnames(RsqFrame) <- model_list
+  write.csv(
+    RsqFrame,
+    paste0(
+      SWITCHBOARD.DIRECTORY,
+      "Correlation_Analyses\\",
+      pass_name,
+      "_Rsq_T_",
+      SWITCHBOARD.strTHRESHOLDS[threshold],
+      ".csv"
+    ),
+    row.names = FALSE
+  )
+  
+  colnames(SBCFrame) <- model_list
+  write.csv(
+    SBCFrame,
+    paste0(
+      SWITCHBOARD.DIRECTORY,
+      "Correlation_Analyses\\",
+      pass_name,
+      "_SBC_T_",
+      SWITCHBOARD.strTHRESHOLDS[threshold],
+      ".csv"
+    ),
+    row.names = FALSE
+  )
+  
+  return(list(RsqFrame, SBCFrame))
+}
+
+
+cat("Dataset Preparation Function...\n")
 PIPELINE.DataPrep <- function(dataset) {
   
   return_dataset <- dataset
@@ -787,42 +848,24 @@ main <- function() {
               row.names = FALSE)
     workingFilenames <- append(workingFilenames, fileTitle)
     #---------------------------------------------------------------
-    #MOVE OUT AND FUNCTIONALIZE!
+
+    
     cat("::::| Extracting All-Subsets Linear Regression R^2/SBC...\n")
     
-    #WIP
-    # ACCESSORY.statextractor(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion),
-    #                         SUBSETS_STATS.1stgen.modelnames,
-    #                         SUBSETS_STATS.1stgen.statsArray,
-    #                         SWITCHBOARD.strTHRESHOLDS[threshold_level]
-    # )
+
+    SUBSETS_STATS.1stgen.statsArray <- ACCESSORY.statextractor(parlVersion,
+                                                               SUBSETS_STATS.1stgen.modelnames,
+                                                               SUBSETS_STATS.1stgen.statsArray,
+                                                               SWITCHBOARD.strTHRESHOLDS[threshold_level]
+    )
+    SUBSETS_STATS.2ndgen.statsArray <- ACCESSORY.statextractor(parlVersion,
+                                                               SUBSETS_STATS.2ndgen.modelnames,
+                                                               SUBSETS_STATS.2ndgen.statsArray,
+                                                               SWITCHBOARD.strTHRESHOLDS[threshold_level]
+    )
+    PIPELINE.FrameFiller(SUBSETS_STATS.1stgen.modelnames, SUBSETS_STATS.1stgen.abbreviate, SUBSETS_STATS.1stgen.statsArray, SWITCHBOARD.strMODELLIST_gen1, "G1", threshold_level) 
+    PIPELINE.FrameFiller(SUBSETS_STATS.2ndgen.modelnames, SUBSETS_STATS.2ndgen.abbreviate, SUBSETS_STATS.2ndgen.statsArray, SWITCHBOARD.strMODELLIST_gen2, "G2", threshold_level) 
     
-    # ACCESSORY.statfinder(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion), SUBSETS_STATS.1stgen.modelnames)
-    for (accession in c(SWITCHBOARD.strALLACCESSIONS, as.vector(SWITCHBOARD.strACCESSIONLIST))) {
-      loadup_df <- ACCESSORY.statfinder(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion), SUBSETS_STATS.1stgen.modelnames)
-      for (model in SUBSETS_STATS.1stgen.modelnames) {
-        for (stat in c("AdjRsq", "SBC")) {
-          SUBSETS_STATS.1stgen.statsArray[as.character(SWITCHBOARD.strTHRESHOLDS[threshold_level]),
-                     accession,
-                     model,
-                     stat] <- loadup_df[loadup_df$Name == model, stat]
-        }
-      }
-    }
-    
-    for (accession in c(SWITCHBOARD.strALLACCESSIONS, as.vector(SWITCHBOARD.strACCESSIONLIST))) {
-      loadup_df <- ACCESSORY.statfinder(ACCESSORY.DataSubset(SWITCHBOARD.strALLDATA, accession, parlVersion), SUBSETS_STATS.2ndgen.modelnames)
-      for (model in SUBSETS_STATS.2ndgen.modelnames) {
-        for (stat in c("AdjRsq", "SBC")) {
-          SUBSETS_STATS.2ndgen.statsArray[as.character(SWITCHBOARD.strTHRESHOLDS[threshold_level]),
-                                          accession,
-                                          model,
-                                          stat] <- loadup_df[loadup_df$Name == model, stat]
-        }
-      }
-    }
-    
-    #^^^^^^^^^^^^^^^^^^^^^^^^^^^
     #---------------------------------------------------------------
     cat("::::| Plotting Parameter Cross-Relations...\n")
     pdftitle <- paste(
@@ -854,103 +897,9 @@ main <- function() {
         Mode = character()
       )
     
-    #-----------------
-    #This down to the Carats need to be moved out of main and functionalized.
-    #Actually, for now, I just need to get this done. Will duplicate and modify code for time being.
-    
-    RsqFrame_1stgen <- data.frame(matrix(ncol = length(SUBSETS_STATS.1stgen.modelnames), nrow = 0))
-    SBCFrame_1stgen <- data.frame(matrix(ncol = length(SUBSETS_STATS.1stgen.modelnames), nrow = 0))
-    
-    dimKeyPair_1stgen <- as.list(SUBSETS_STATS.1stgen.abbreviate)
-    names(dimKeyPair_1stgen) <- as.vector(SUBSETS_STATS.1stgen.modelnames)
-    
-    
-    for (accession in c(SWITCHBOARD.strALLACCESSIONS, SWITCHBOARD.strACCESSIONLIST)) {
-      RSQinsert <- c(accession)
-      SBCinsert <- c(accession)
-      for (model in c(1:length(SUBSETS_STATS.1stgen.modelnames))) {
-        RSQinsert[model + 1] <-
-          SUBSETS_STATS.1stgen.statsArray[toString(SWITCHBOARD.strTHRESHOLDS[threshold_level]), toString(accession), SUBSETS_STATS.1stgen.modelnames[model], "AdjRsq"]
-        SBCinsert[model + 1] <-
-          SUBSETS_STATS.1stgen.statsArray[toString(SWITCHBOARD.strTHRESHOLDS[threshold_level]), toString(accession), SUBSETS_STATS.1stgen.modelnames[model], "SBC"]
-      }
-      
-      RsqFrame_1stgen <- rbind(RsqFrame_1stgen, RSQinsert)
-      SBCFrame_1stgen <- rbind(SBCFrame_1stgen, SBCinsert)
-    }
-    
-    colnames(RsqFrame_1stgen) <- SWITCHBOARD.strMODELLIST_gen1
-    write.csv(
-      RsqFrame_1stgen,
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "Correlation_Analyses\\G1_Rsq_T_",
-        SWITCHBOARD.strTHRESHOLDS[threshold_level],
-        ".csv"
-      ),
-      row.names = FALSE
-    )
-    
-    colnames(SBCFrame_1stgen) <- SWITCHBOARD.strMODELLIST_gen1
-    write.csv(
-      SBCFrame_1stgen,
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "Correlation_Analyses\\G1_SBC_T_",
-        SWITCHBOARD.strTHRESHOLDS[threshold_level],
-        ".csv"
-      ),
-      row.names = FALSE
-    )
-    
-    #DUPLICATED CODE BEGINS HERE:
-    RsqFrame_2ndgen <- data.frame(matrix(ncol = length(SUBSETS_STATS.2ndgen.modelnames), nrow = 0))
-    SBCFrame_2ndgen <- data.frame(matrix(ncol = length(SUBSETS_STATS.2ndgen.modelnames), nrow = 0))
-    
-    dimKeyPair_2ndgen <- as.list(SUBSETS_STATS.2ndgen.abbreviate)
-    names(dimKeyPair_2ndgen) <- as.vector(SUBSETS_STATS.2ndgen.modelnames)
-    
-    for (accession in c(SWITCHBOARD.strALLACCESSIONS, SWITCHBOARD.strACCESSIONLIST)) {
-      RSQinsert <- c(accession)
-      SBCinsert <- c(accession)
-      for (model in c(1:length(SUBSETS_STATS.2ndgen.modelnames))) {
-        RSQinsert[model + 1] <-
-          SUBSETS_STATS.2ndgen.statsArray[toString(SWITCHBOARD.strTHRESHOLDS[threshold_level]), toString(accession), SUBSETS_STATS.2ndgen.modelnames[model], "AdjRsq"]
-        SBCinsert[model + 1] <-
-          SUBSETS_STATS.2ndgen.statsArray[toString(SWITCHBOARD.strTHRESHOLDS[threshold_level]), toString(accession), SUBSETS_STATS.2ndgen.modelnames[model], "SBC"]
-      }
-      
-      RsqFrame_2ndgen <- rbind(RsqFrame_2ndgen, RSQinsert)
-      SBCFrame_2ndgen <- rbind(SBCFrame_2ndgen, SBCinsert)
-    }
-    
-    colnames(RsqFrame_2ndgen) <- SWITCHBOARD.strMODELLIST_gen2
-    write.csv(
-      RsqFrame_2ndgen,
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "Correlation_Analyses\\G2_Rsq_T_",
-        SWITCHBOARD.strTHRESHOLDS[threshold_level],
-        ".csv"
-      ),
-      row.names = FALSE
-    )
-    
-    colnames(SBCFrame_2ndgen) <- SWITCHBOARD.strMODELLIST_gen2
-    write.csv(
-      SBCFrame_2ndgen,
-      paste0(
-        SWITCHBOARD.DIRECTORY,
-        "Correlation_Analyses\\G2_SBC_T_",
-        SWITCHBOARD.strTHRESHOLDS[threshold_level],
-        ".csv"
-      ),
-      row.names = FALSE
-    )
-    #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   }
+  cat("Program Finished!\n")
 }
 
 main()
 
-cat("Program Finished!\n")
