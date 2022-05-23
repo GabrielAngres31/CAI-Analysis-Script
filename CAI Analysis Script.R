@@ -31,6 +31,8 @@ library("Rcmdr")
 library("hash")
 library("multcompView")
 library("HyperG")
+library("plotly")
+library("htmlwidgets")
 
 # SWITCHBOARD variable/function setup to quickly adjust elements present throughout the program.
 # Hacky way of getting consistent legend generation, also controls value rounding over the program
@@ -194,11 +196,6 @@ SWITCHBOARD.GRAPHS_LIST <- tribble(
   'height',    'thickness',
   'diameter',  'thickness',
   'D_div_W',   'dry_weight'
-  #  'add_HW', 'thickness',
-  #  'add_HW', 'fresh_weight',
-  #  'add_HWT', 'fresh_weight',
-  #  'add_DT', 'fresh_weight',
-  #  'mul_HWDT', 'fresh_weight'
 )
 
 #   Removing any amount of datapoints based on researcher's discretion if a datapoint cannot be 
@@ -528,6 +525,8 @@ PIPELINE.tukeyAnalyzer <- function(dataset, threshold, measure) {
     for (group in groupElements) {
       hypergroups[[group]] <- collectGroup(tukey_labels, group)
     }
+    #print(paste0("New graph: ", measure, "--", threshold, "th"))
+    #print(hypergroups)
     
     generated_hypergraph <- hypergraph_from_edgelist(hypergroups)
     
@@ -580,6 +579,11 @@ ACCESSORY.statfinder <- function (dataset, models_x) {
     formula_fresh <- as.formula(paste0("fresh_weight ~ ", targetmodel_x))
     formula_fits <- lm(formula_fresh, dataset)
     formula_summ <- summary(formula_fits)
+    
+    print("\n\nFormula Entry:")
+    print(formula_fresh)
+    print(coef(formula_summ))
+    
     models_df <- rbind(models_df,
                        data.frame(
                          Name = targetmodel_x,
@@ -639,6 +643,7 @@ SUBSETS_STATS.1stgen.modelnames <- c(
   "width*diameter*thickness",
   "height*diameter*thickness",
   "width*height*diameter*thickness"
+  #"I(width*height*diameter*thickness)"
 )
 SUBSETS_STATS.1stgen.abbreviate <- SWITCHBOARD.strMODELLIST_gen1[2:length(SWITCHBOARD.strMODELLIST_gen1)]
 
@@ -698,8 +703,9 @@ PIPELINE.FrameFiller <- function(modelnames, abbreviate_list, input_statsarray, 
   RsqFrame <- data.frame(matrix(ncol = length(modelnames), nrow = 0))
   SBCFrame <- data.frame(matrix(ncol = length(modelnames), nrow = 0))
   
-  dimKeyPair <- as.list(abbreviate_list)
-  names(dimKeyPair) <- as.vector(modelnames)
+  dimKeyPair <- ACCESSORY.vector2list_zip(as.list(abbreviate_list), as.vector(modelnames))
+  # dimKeyPair <- as.list(abbreviate_list)
+  # names(dimKeyPair) <- as.vector(modelnames)
   
   for (accession in c(SWITCHBOARD.strALLACCESSIONS, SWITCHBOARD.strACCESSIONLIST)) {
     RSQinsert <- c(accession)
