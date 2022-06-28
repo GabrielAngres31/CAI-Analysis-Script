@@ -297,6 +297,7 @@ ACCESSORY.ErrorCleaning <- function(dataset, perc_threshold) {
       filter(rawblock,!(rawblock$completeID %in% blacksite))
   }
   finalDataset <- rawblock
+  print(finalDataset)
   return(finalDataset)
 }
 
@@ -580,9 +581,9 @@ ACCESSORY.statfinder <- function (dataset, models_x) {
     formula_fits <- lm(formula_fresh, dataset)
     formula_summ <- summary(formula_fits)
     
-    print("\n\nFormula Entry:")
-    print(formula_fresh)
-    print(coef(formula_summ))
+    # print("\n\nFormula Entry:")
+    # print(formula_fresh)
+    # print(coef(formula_summ))
     
     models_df <- rbind(models_df,
                        data.frame(
