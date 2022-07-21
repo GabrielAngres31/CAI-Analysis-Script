@@ -1,5 +1,5 @@
 #' @name GRAPHER.tukeyPlotter
-#' @description
+#' @description 
 #' @param tukey_results
 #' @example
 
@@ -10,9 +10,10 @@ GRAPHER.tukeyPlotter <- function(tukey_results) {
   #return(tukeyplot)
 }
 
-#' @name 
+#' @name GRAPHER.tukeyHypergraph
 #' @description
-#' @param 
+#' @param tukey_edgelist
+#' @param measure
 #' @example
 
 GRAPHER.tukeyHypergraph <- function(tukey_edgelist, measure) {
@@ -26,9 +27,11 @@ GRAPHER.tukeyHypergraph <- function(tukey_edgelist, measure) {
 
 #-----------------
 
-#' @name 
+#' @name GRAPHER.qqGen
 #' @description
-#' @param 
+#' @param df_in
+#' @param accession
+#' @param measure
 #' @example
 
 GRAPHER.qqGen <- function(df_in, accession, measure) {
@@ -38,9 +41,11 @@ GRAPHER.qqGen <- function(df_in, accession, measure) {
   dev.off()
 }
 
-#' @name 
+#' @name GRAPHER.intermeasure
 #' @description
-#' @param 
+#' @param fits_df
+#' @param accession
+#' @param modelname
 #' @example
 
 GRAPHER.intermeasure <- function(fits_df, accession, modelname) {
@@ -50,25 +55,20 @@ GRAPHER.intermeasure <- function(fits_df, accession, modelname) {
   model_in <- UTIL.AugmentModelWithLeverageTagging(model_in)
 
   model_in <- UTIL.AugmentModelWithID(model_in, accession)
+  
   colnames_data <- names(model_in$model)
   model_df <- select(model_in$model, c(colnames_data))
   y_measure <- colnames_data[1]
   x_measure <- colnames_data[2]
   slope <- model_in$coefficients[2]
   intercept <- model_in$coefficients[1]
-  
-  #print(model_df)
-  #print(CALC.PadIDfromModelValuePairs(model_df, data_df))
-  #print(model_df)
-  
-  # model_df <- mutate(model_df, tagged = "N/A")
-  # model_df$tagged[indices_MID] <- ">2p/n Threshold"
-  # model_df$tagged[indices_HI] <- ">3p/n Threshold"
+ 
+  adj_rsq <- round(summary(model_in)[["adj.r.squared"]], 3)
 
   intermeasure_plot_out <- ggplot(model_df, aes(!!as.symbol(x_measure), !!as.symbol(y_measure),
                                                 label = ifelse(tagged == "N/A", "", ID))) +
     geom_point(aes(color = tagged)) +
-    labs(title = (paste0("INTERMEASURE\nMODEL:", modelname, "\nACCESSION:", accession))) +
+    labs(title = (paste0("INTERMEASURE\nMODEL:", modelname, "\nACCESSION:", accession, "\nADJ.R^2:", adj_rsq))) +
     geom_text(hjust=1.05, vjust=0) +
     geom_text(hjust=-.20, vjust=0) +
     geom_abline(intercept = intercept, slope = slope)
@@ -79,56 +79,35 @@ GRAPHER.intermeasure <- function(fits_df, accession, modelname) {
 #GRAPHER.intermeasure(test_aug_filt, DATA_OBJECTS.LinearRegressions_DF, 242, "height~width")
 
 
-#' @name 
-#' @description
-#' @param 
-#' @example
-
-GRAPHER.multiplicative <- function(fits_df, accession, modelname) {
-  model_in <- CALC.ModelFetch(fits_df, accession, modelname)
+GRAPHER.R2heatmap <- function(R2_df_in, abbreviations) {
   
-}
-
-GRAPHER.elliptical <- function() {
-  NULL
-}
-
-#' @name 
-#' @description
-#' @param 
-#' @example
-
-GRAPHER.R2heatmap <- function(R2_df_in, filenamestring, subfolder) {
-  UTIL.quickPNG(filenamestring, subfolder)
   R2_heat_palette <- colorRampPalette(brewer.pal(8, "RdYlGn"))(25)
   
   R2_df_in %>%
+    setNames(c("accession", abbreviations)) %>%
     column_to_rownames("accession") %>%
     data.matrix() %>%
     heatmap(Rowv = NA, Colv = NA, col = R2_heat_palette)
-  
-  dev.off()
 }
 
 #]]DEBUG
 #GRAPHER.R2heatmap(test_heatmap_in, "Test_Heatmap_R2", "Heatmaps")
 
-#' @name 
+#' @name GRAPHER.SBCheatmap
 #' @description
 #' @param 
 #' @example
 
-GRAPHER.SBCheatmap <- function(SBC_df_in, filenamestring, subfolder) {
-  UTIL.quickPNG(filenamestring, subfolder)
   
-  SBC_heat_palette <- colorRampPalette(brewer.pal(8, "RdBu"))(25)
+GRAPHER.SBCheatmap <- function(SBC_df_in, abbreviations) {
+
+  SBC_heat_palette <- rev(colorRampPalette(brewer.pal(8, "RdBu"))(25))
   
   SBC_df_in %>%
+    setNames(c("accession", abbreviations)) %>%
     column_to_rownames("accession") %>%
     data.matrix() %>%
-    heatmap(Rowv = NA, Colv = NA, scale = "column", col = SBC_heat_palette)
-  
-  dev.off()
+    heatmap(Rowv = NA, Colv = NA, scale = "row", col = SBC_heat_palette)
 }
 
 #]]DEBUG

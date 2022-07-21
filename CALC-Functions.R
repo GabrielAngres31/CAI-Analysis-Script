@@ -6,6 +6,7 @@
 #' @example CALC.ModelGenerator(SWITCHBOARD.csvMAINFILE, SWITCHBOARD.MODELS_DF)
 
 CALC.ModelGenerator <- function(data_in, fill_models_df) {
+  
   fits_frame <- data.frame(accession = SWITCHBOARD.ACCESSIONLIST)
   for(model in fill_models_df$models) {
     new_models <- data_in %>%
@@ -15,7 +16,31 @@ CALC.ModelGenerator <- function(data_in, fill_models_df) {
       column_to_rownames("accession")
     fits_frame <- cbind(fits_frame, new_models[model])
   }
+  
   return(fits_frame)
+}
+
+
+
+
+CALC.ModelGenerator_AllAccessions_R2 <- function(data_in, fill_models_df) {
+  list_out <- list()
+  for(model in fill_models_df$models) {
+    list_out <- list_out %>%
+      append(summary(lm(model, data = data_in))[["adj.r.squared"]])
+  }
+  names(list_out) <- fill_models_df$models
+  return(list_out)
+}
+
+CALC.ModelGenerator_AllAccessions_SBC <- function(data_in, fill_models_df) {
+  list_out <- list()
+  for(model in fill_models_df$models) {
+    list_out <- list_out %>%
+      append(BIC(lm(model, data = data_in)))
+  }
+  names(list_out) <- fill_models_df$models
+  return(list_out)
 }
 
 ########################################
@@ -131,7 +156,6 @@ CALC.PadIDfromModelValuePairs <- function(value_pairs_df, data_df, accession) {
   pad_id_vec <- c()
   field_1 <- names(value_pairs_df)[1]
   field_2 <- names(value_pairs_df)[2]
-  print(accession)
   for(row in c(1:nrow(value_pairs_df))) {
     add_id <- data_df[
       which(
@@ -205,10 +229,13 @@ CALC.tukeyEdgelist <- function(tukey_relation) {
 
 CALC.df_SBC <- function(fits_df) {
   return_df <- fits_df
-  for (row in 1:nrow(fits_df)) {
-    for (col in 2:ncol(fits_df)) {
-      return_df[row, col] <- BIC(return_df[row, col][[1]])
+  for (col in 2:ncol(fits_df)) {
+    for (row in 1:nrow(fits_df)) {
+      return_df[row, col] <- BIC(return_df[row, col][[1]])[[1]]
+      #print(class(return_df[row, col]))
+      #cat(ifelse(class(return_df[row, col]) == "list", "!", "&"))
     }
+    return_df[,col] <- unlist(return_df[,col])
   }
   return(return_df)
 }
@@ -220,10 +247,53 @@ CALC.df_SBC <- function(fits_df) {
 
 CALC.df_R2 <- function(fits_df) {
   return_df <- fits_df
-  for (row in 1:nrow(fits_df)) {
-    for (col in 2:ncol(fits_df)) {
+  for (col in 2:ncol(fits_df)) {
+    for (row in 1:nrow(fits_df)) {
       return_df[row, col] <- summary(return_df[row, col][[1]])[["adj.r.squared"]]
+      #print(class(return_df[row, col]))
+      #cat(ifelse(class(return_df[row, col]) == "list", "#", "@"))
     }
+    return_df[,col] <- unlist(return_df[,col])
   }
   return(return_df)
 }
+
+#' @name CALC.IndependentMultivariable_Predict
+#' @flag NOT USED
+#' @description Generates predicted values for a model, the long way.
+#' @param model_in An input linear model object with multiple predictor variables.
+
+CALC.IndependentMultivariable_Predict <- function(model_in) {
+  coeff <- model_in$coefficients
+  model_data <- model_in$model
+  
+  coeff_names <- names(coeff)
+  coeff_value <- unname(coeff)
+  
+  prediction_vector <- rep(coeff_value[1], nrow(model_data))
+  for (term_index in c(2:length(coeff))) {
+    #print(term_index)
+    term_name <- coeff_names[term_index]
+    term_val <- coeff_value[term_index]
+    term_name_split <- str_split(term_name, ":")
+    term_mult_val <- c(rep(1, nrow(model_data)))
+    for (stat in term_name_split) {
+      #print(stat)
+      term_mult_val <- term_mult_val * model_data[[stat]]
+    }
+    #print("term_mult_val")
+    #print(term_mult_val)
+    prediction_vector <- prediction_vector + term_mult_val * coeff_value[term_index]
+    print(term_mult_val * coeff_value[term_index])
+    print(prediction_vector)
+    #TODO: FIND OUT WHY PREDICTION VECTOR IS EMPTY!
+  }
+  model_out <- model_in
+  model_out$model$prediction <- prediction_vector
+  return(model_out)
+}
+
+
+# CALC.WholeDataModel_ColumnGen <- function(data_df, fits_df) {
+#   models_names = names(fits_df)[-1]
+# }

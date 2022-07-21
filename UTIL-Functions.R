@@ -120,10 +120,10 @@ UTIL.quickCSV <- function(df_csv, filenamestring, subfolder) {
 #'
 #'
 #'
-#UTIL.DropData <- function(data_in, data_drop_IDs) {
-  data_out <- data_in[-which(data_in$completeID %in% data_drop_IDs),]
-  return(data_out)
-}
+# UTIL.DropData <- function(data_in, data_drop_IDs) {
+#   data_out <- data_in[-which(data_in$completeID %in% data_drop_IDs),]
+#   return(data_out)
+# }
 
 #' @name UTIL.Collect_ID_NPN
 #' @description
@@ -144,19 +144,19 @@ UTIL.Collect_ID_NPN <- function(model_df, tag_text) {
       ID_vec_out <- unique(c(ID_vec_out, ID_vec))
     }
   }
-  print(str(ID_vec_out))
+  #print(str(ID_vec_out))
   return(ID_vec_out) #droplist
 }
 
-#' @name UTIL.DropOn3PN
+#' @name UTIL.DropOnNPN
 #' @description
 #' @param data_in
-#' @param droplist_3PN
+#' @param droplist_NPN
 #' @example
 
-UTIL.DropOn3PN <- function(data_in, droplist_3PN) {
-  data_out <- data_in[-which(droplist_3PN %in% data_in$completeID),]
-  print(nrow(data_out))
+UTIL.DropOnNPN <- function(data_in, droplist_NPN) {
+  data_out <- data_in[-which(data_in$completeID %in% droplist_NPN),]
+  #print(nrow(data_out))
   return(data_out)
 }
 
@@ -168,19 +168,22 @@ UTIL.DropOn3PN <- function(data_in, droplist_3PN) {
 #' @param droplist_2PN
 #' @example
 
-UTIL.DropOnHybrid_3PN_and2PNVisual <- function(data_in, model_df, droplist_3PN, droplist_2PN) {
-  check_2PN <- UTIL.Collect_ID_NPN(model_df, ">2p/n Threshold")
-  for (ID in droplist_2PN) {
-    if(!(ID %in% check_2PN)) {
-      print(paste0("Warning: ", ID, " is not in 2p/n list and will not be removed."))
-      droplist_2PN <- droplist_2PN[-which(droplist_2PN == ID)]
-    }
-  }
-  final_droplist <- unique(c(droplist_3PN, droplist_2PN))
-  data_out <- data_in[-which(final_droplist %in% data_in$completeID),]
-  print(nrow(data_out))
-  return(data_out)
-}
+
+
+
+# UTIL.DropOnHybrid_3PN_and2PNVisual <- function(data_in, model_df, droplist_3PN, droplist_2PN) {
+#   check_2PN <- UTIL.Collect_ID_NPN(model_df, ">2p/n Threshold")
+#   for (ID in droplist_2PN) {
+#     if(!(ID %in% check_2PN)) {
+#       print(paste0("Warning: ", ID, " is not in 2p/n list and will not be removed."))
+#       droplist_2PN <- droplist_2PN[-which(droplist_2PN == ID)]
+#     }
+#   }
+#   final_droplist <- unique(c(droplist_3PN, droplist_2PN))
+#   data_out <- data_in[-which(final_droplist %in% data_in$completeID),]
+#   print(nrow(data_out))
+#   return(data_out)
+# }
 
 #' @name UTIL.AugmentModelWithLeverageTagging
 #' @description
@@ -202,4 +205,52 @@ UTIL.AugmentModelWithLeverageTagging <- function(model_in) {
   model_out$model$tagged[indices_HI] <- ">3p/n Threshold"
   
   return(model_out)
+}
+
+
+UTIL.StoreCSV <- function(df_in, filenamestring, subfolder) {
+  write.csv(df_in, paste0(SWITCHBOARD.DIRECTORY, "\\", subfolder, "\\", filenamestring, ".csv"), row.names = FALSE)
+}
+
+UTIL.AllAccessionToMain <- function(main_df, add_list) {
+  rowaddloc <- nrow(main_df) + 1 
+  main_df[rowaddloc, 1] <- "All_Accessions"
+  for (model in names(add_list)) {
+    coladdloc <- which(names(add_list) == model)
+    main_df[rowaddloc, coladdloc+1] <- add_list[[model]]
+  }
+  
+  return(main_df)
+}
+
+
+UTIL.StoreHeatmapsAndFile <- function(data_in, fill_models_df, filename, subfolder, abbreviations) {
+  
+  all_R2 <- CALC.ModelGenerator_AllAccessions_R2(data_in, fill_models_df)
+  all_SBC <- CALC.ModelGenerator_AllAccessions_SBC(data_in, fill_models_df)
+  
+  R2_frame_name <- paste0(filename, "_R2")
+  SBC_frame_name <- paste0(filename, "_SBC")
+  
+  # model_df <- CALC.ModelGenerator(data_in, fill_models_df)
+  # R2_frame <- CALC.df_R2(model_df)
+  # R2_frame <- R2_frame %>%
+  #   UTIL.AllAccessionToMain(all_R2)
+  # COMPILE.R2heatmap(R2_frame, filenamestring, subfolder, abbreviations)
+  
+  data_in %>% 
+    CALC.ModelGenerator(fill_models_df) %>%
+    CALC.df_R2 %>%
+    UTIL.AllAccessionToMain(all_R2) %>%
+    `row.names<-`(NULL) %T>%
+    COMPILE.R2heatmap(R2_frame_name, subfolder, abbreviations) %>%
+    UTIL.StoreCSV(R2_frame_name, subfolder)
+  
+  data_in %>% 
+    CALC.ModelGenerator(fill_models_df) %>%
+    CALC.df_SBC %>%
+    UTIL.AllAccessionToMain(all_SBC) %>%
+    `row.names<-`(NULL) %T>%
+    COMPILE.SBCheatmap(SBC_frame_name, subfolder, abbreviations) %>%
+    UTIL.StoreCSV(SBC_frame_name, subfolder)
 }
