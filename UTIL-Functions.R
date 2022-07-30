@@ -1,71 +1,22 @@
-#' @name UTIL.CollectFilterModelIDs
-#' @description A test function designed to check all datapoints which pass the > 3p/n leverage threshold in any model, for each accession. A diagnostic tool.
-#' @param data_df The source dataframe from which the models are derived.
-#' @param fits_df The dataframe of models by accession.
-#' @example UTIL.CollectFilterModelIDs(SWITCHBOARD.csvMAINFILE, DATA_OBJECTS.LinearRegressions_DF)
+#' @name UTIL.toModelString
+#' @description Takes two strings and assembles them into a model name parseable by an lm() call.
+#' @param xname A string denoting the independent variable.
+#' @param yname A string denoting the denpendent variable.
+#' @example UTIL.toModelString("width", "height") >> "height~width"
+#' @returns A string containing a modelname.
 
-UTIL.CollectFilterModelIDs <- function(data_df, fits_df) {
-  
-  ID_message_collection <- c()
-  ID_collection <- c()
-  
-  df_errors <- data.frame(ID = NA, Model = NA)
-  df_errors <- df_errors[-c(1),]
-  
-  all_models <- names(fits_df[2:length(names(fits_df))])
-  for (accession in SWITCHBOARD.ACCESSIONLIST) {
-    for (model_name in all_models) {
-      model_in <- CALC.ModelFetch(fits_df, accession, model_name)
-      ID_vec <- model_in %>%
-        CALC.ModelIndexHighLeverage() %>%
-        CALC.ModelValuePairsFromIndex(model_in) %>%
-        CALC.PadIDfromModelValuePairs(data_df, accession)
-      for(ID in ID_vec) {
-        df_errors[nrow(df_errors) + 1,] <- c(ID, model_name)
-        ID_collection <- c(ID_collection, ID)
-        string_out <- paste0("[", accession, "]{", model_name, "}: ", ID)
-        #print(string_out)
-        ID_message_collection <- c(ID_message_collection, string_out)
-      }
-    }
-  }
-  unique_IDs <- unique(ID_collection)
-  unsorted_unique_ID_occurrences <- c()
-  for(ID in unique_IDs) {
-    occurrences <- length(which(ID_collection == ID))
-    unsorted_unique_ID_occurrences <- c(unsorted_unique_ID_occurrences, paste0("[", occurrences, "]:", ID))
-  }
-  sorted_unique_ID_occurrences <- sort(unsorted_unique_ID_occurrences)
-  df_errors <- df_errors %>%
-    mutate(Accession = substring(ID,6,8),
-           ID = as.factor(ID),
-           Model = as.factor(Model)) %>% 
-    add_count(ID)
-  print(df_errors)
-  return(df_errors)
+UTIL.toModelString <- function(xname, yname) {
+  return(paste0(yname, "~", xname))
 }
 
-#' @name UTIL.TagFilterByID 
-#' @description 
-#' @param df_in
-#' @param df_errors
-#' @example
-
-UTIL.TagFilterByID <- function(df_in, df_errors) {
-  df_out <- df_in %>%
-    mutate(tagged_hiLeverage = F)
-  df_out$tagged_hiLeverage[df_out$completeID %in% df_errors$ID] <- T
-  head(df_out)
-  print(nrow(df_out))
-  return(df_out)
-}
+# Filtration Utilities ----------------------------------------------------
 
 #' @name UTIL.AugmentModelWithID
-#' @description
-#' @param model_in
-#' @param accession
-#' @example
-
+#' @description Adds IDs for each datapoint with a given accession number.
+#' @param model_in The linear model object to be augmented.
+#' @param accession A string containing the accession ID for the augmentation.
+#' @returns An augmented linear model object with a ID column within the model_obj$model property.
+ 
 UTIL.AugmentModelWithID <- function(model_in, accession) {
   model_out <- model_in
   ID_vector <- c()
@@ -81,114 +32,49 @@ UTIL.AugmentModelWithID <- function(model_in, accession) {
   return(model_out)
 }
 
-#' @name UTIL.toModelString
-#' @description Takes two strings and assembles them into a model name parseable by an lm() call.
-#' @param xname A string denoting the independent variable.
-#' @param yname A string denoting the denpendent variable.
-#' @example UTIL.toModelString("width", "height") >> "height~width"
+#' @name Assemble3PNDroplist
+#' @description Collects all datapoints which exceed the 3P/N leverage threshold in the models selected, by accession.
+#' @param fits_df A dataframe containing pregenerated models from CALC.ModelGenerator.
+#' @param data_df A dataframe containing all measured data points with IDs and their measures.
+#' @returns A vector with string IDs.
 
-UTIL.toModelString <- function(xname, yname) {
-  return(paste0(yname, "~", xname))
-}
+UTIL.Assemble3PNDroplist <- function(fits_df, data_df) {
+  blacklist_3pn <- c()
 
-#' @name UTIL.quickPNG
-#' @description
-#' @param filenamestring
-#' @param subfolder
-#' @example
+  for (modelname in colnames(fits_df)[-1]) {
 
-UTIL.quickPNG <- function(filenamestring, subfolder) {
-  png(paste0(SWITCHBOARD.DIRECTORY, "\\", subfolder, "\\", filenamestring, ".png"))
-}
+    for (accession in SWITCHBOARD.ACCESSIONLIST) {
 
-#' @name UTIL.quickCSV
-#' @description
-#' @param df_csv
-#' @param filenamstring
-#' @param subfolder
-#' @example
+      model <- CALC.ModelFetch(fits_df, accession, modelname)
+      target_loc <- CALC.ModelIndexHighLeverage(model)
 
-UTIL.quickCSV <- function(df_csv, filenamestring, subfolder) {
-  write.csv(
-    df_csv,
-    paste0(SWITCHBOARD.DIRECTORY, "\\", subfolder, "\\", filenamestring, ".csv"),
-    row.names = FALSE
-  )
-}
-
-#'
-#'
-#'
-#'
-# UTIL.DropData <- function(data_in, data_drop_IDs) {
-#   data_out <- data_in[-which(data_in$completeID %in% data_drop_IDs),]
-#   return(data_out)
-# }
-
-#' @name UTIL.Collect_ID_NPN
-#' @description
-#' @param model_df
-#' @param tag_text
-#' @example
-
-UTIL.Collect_ID_NPN <- function(model_df, tag_text) {
-  ID_vec_out <- c()
-  for (accession in rownames(model_df)) {
-    for (modelname in colnames(model_df)[-1]) {
-      model <- CALC.ModelFetch(model_df, accession, modelname)
-      model_aug <- model %>%
-        UTIL.AugmentModelWithLeverageTagging() %>%
-        UTIL.AugmentModelWithID(accession)
-      ID_index <- which(model_aug$model$tagged == tag_text)
-      ID_vec <- model_aug$model$ID[ID_index]
-      ID_vec_out <- unique(c(ID_vec_out, ID_vec))
+      for (loc in target_loc) {
+        pairframe <- CALC.ModelValuePairsFromIndex(loc, model)
+        modelID <- CALC.PadIDfromModelValuePairs(pairframe, data_df, accession)
+        blacklist_3pn <- c(blacklist_3pn, modelID)
+      }
     }
   }
-  #print(str(ID_vec_out))
-  return(ID_vec_out) #droplist
+  blacklist_3pn <- sort(unique(blacklist_3pn))
+  return(blacklist_3pn)
 }
 
 #' @name UTIL.DropOnNPN
-#' @description
-#' @param data_in
-#' @param droplist_NPN
-#' @example
+#' @description Removes IDs in a droplist from a larger dataset.
+#' @param data_df A dataframe containing all measured data points with IDs and their measures.
+#' @param droplist_NPN A vector of strings containing IDs of the datapoints to drop.
+#' @returns A dataframe excluding the removed datapoints.
 
-UTIL.DropOnNPN <- function(data_in, droplist_NPN) {
-  data_out <- data_in[-which(data_in$completeID %in% droplist_NPN),]
+UTIL.DropOnNPN <- function(data_df, droplist_NPN) {
+  data_out <- data_df[-which(data_df$completeID %in% droplist_NPN),]
   #print(nrow(data_out))
   return(data_out)
 }
 
-#' @name UTIL.DropOnHybrid_3PN_and2PNVisual
-#' @description
-#' @param data_in
-#' @param model_df
-#' @param droplist_3PN
-#' @param droplist_2PN
-#' @example
-
-
-
-
-# UTIL.DropOnHybrid_3PN_and2PNVisual <- function(data_in, model_df, droplist_3PN, droplist_2PN) {
-#   check_2PN <- UTIL.Collect_ID_NPN(model_df, ">2p/n Threshold")
-#   for (ID in droplist_2PN) {
-#     if(!(ID %in% check_2PN)) {
-#       print(paste0("Warning: ", ID, " is not in 2p/n list and will not be removed."))
-#       droplist_2PN <- droplist_2PN[-which(droplist_2PN == ID)]
-#     }
-#   }
-#   final_droplist <- unique(c(droplist_3PN, droplist_2PN))
-#   data_out <- data_in[-which(final_droplist %in% data_in$completeID),]
-#   print(nrow(data_out))
-#   return(data_out)
-# }
-
 #' @name UTIL.AugmentModelWithLeverageTagging
-#' @description
-#' @param model_in
-#' @example
+#' @description Adds data on whether or not each datapoint exceeds the 3P/N leverage threshold for the particular model.
+#' @param model_in The linear model object to be augmented.
+#' @returns An augmented linear model object with a tagged column within the model_obj$model property.
 
 UTIL.AugmentModelWithLeverageTagging <- function(model_in) {
   model_out <- model_in
@@ -196,61 +82,86 @@ UTIL.AugmentModelWithLeverageTagging <- function(model_in) {
   indices_HI <- model_out %>%
     CALC.ModelIndexHighLeverage()
   
-  indices_MID <- model_out %>%
-    CALC.ModelIndexMidLeverage() %>%
-    CALC.ModelIndexMidLeverage_Exclusive(indices_HI)
-  
   model_out$model$tagged <- "N/A"
-  model_out$model$tagged[indices_MID] <- ">2p/n Threshold"
   model_out$model$tagged[indices_HI] <- ">3p/n Threshold"
   
   return(model_out)
 }
 
+#' @name UTIL.AllAccessionToMain
+#' @description Appends a row of summary statistic values (for models applied over the entire dataset) to a dataframe containing the by-accession table of values.
+#' @param model_df The summary statistic dataframe to be augmented.
+#' @param add_list A list of values to be appended to the dataframe.
+#' @returns A dataframe with an additional row and the same amount of columns.
 
-UTIL.StoreCSV <- function(df_in, filenamestring, subfolder) {
-  write.csv(df_in, paste0(SWITCHBOARD.DIRECTORY, "\\", subfolder, "\\", filenamestring, ".csv"), row.names = FALSE)
-}
-
-UTIL.AllAccessionToMain <- function(main_df, add_list) {
-  rowaddloc <- nrow(main_df) + 1 
-  main_df[rowaddloc, 1] <- "All_Accessions"
+UTIL.AllAccessionToMain <- function(model_df, add_list) {
+  rowaddloc <- nrow(model_df) + 1 
+  model_df[rowaddloc, 1] <- "All_Accessions"
   for (model in names(add_list)) {
     coladdloc <- which(names(add_list) == model)
-    main_df[rowaddloc, coladdloc+1] <- add_list[[model]]
+    model_df[rowaddloc, coladdloc+1] <- add_list[[model]]
   }
   
-  return(main_df)
+  return(model_df)
 }
 
 
-UTIL.StoreHeatmapsAndFile <- function(data_in, fill_models_df, filename, subfolder, abbreviations) {
+# File Creation Utilities -------------------------------------------------
+
+#' @name UTIL.quickPNG
+#' @description Creates a .png object with a given name to store an image in.
+#' @param filenamestring The name given for the .png file.
+#' @param subfolder The folder that the file should be stored in.
+
+UTIL.quickPNG <- function(filenamestring, subfolder) {
+  filepath <- file.path(SWITCHBOARD.DIRECTORY, subfolder, filenamestring, fsep = "\\")
+  png(paste0(filepath, ".png"))
+}
+
+#' @name UTIL.quickCSV
+#' @description Creates a .csv file from a dataframe and stores it in a particular path.
+#' @param data_df A dataframe containing all measured data points with IDs and their measures.
+#' @param filenamestring The name given for the .png file.
+#' @param subfolder The folder that the file should be stored in.
+
+UTIL.quickCSV <- function(data_df, filenamestring, subfolder) {
+  filepath <- file.path(SWITCHBOARD.DIRECTORY, subfolder, filenamestring, fsep = "\\")
+  write.csv(
+    data_df,
+    paste0(filepath, ".csv"), 
+    row.names = FALSE
+  )
+}
+
+#' @name UTIL.StoreHeatmapsAndFile
+#' @description Generates and stores a Heatmap image as a .png and its corresponding table as a .csv file.
+#' @param data_df A dataframe containing all measured data points with IDs and their measures.
+#' @param fill_models_df A vector of model strings.
+#' @param filenamestring The name given for the .png file.
+#' @param subfolder The folder that the file should be stored in. 
+#' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
+
+UTIL.StoreHeatmapsAndFile <- function(data_df, fill_models_df, filenamestring, subfolder, abbreviations) {
   
-  all_R2 <- CALC.ModelGenerator_AllAccessions_R2(data_in, fill_models_df)
-  all_SBC <- CALC.ModelGenerator_AllAccessions_SBC(data_in, fill_models_df)
+  all_R2 <- CALC.ModelGenerator_AllAccessions_R2(data_df, fill_models_df)
+  all_SBC <- CALC.ModelGenerator_AllAccessions_SBC(data_df, fill_models_df)
   
-  R2_frame_name <- paste0(filename, "_R2")
-  SBC_frame_name <- paste0(filename, "_SBC")
+  R2_frame_name <- paste0(filenamestring, "_R2")
+  SBC_frame_name <- paste0(filenamestring, "_SBC")
   
-  # model_df <- CALC.ModelGenerator(data_in, fill_models_df)
-  # R2_frame <- CALC.df_R2(model_df)
-  # R2_frame <- R2_frame %>%
-  #   UTIL.AllAccessionToMain(all_R2)
-  # COMPILE.R2heatmap(R2_frame, filenamestring, subfolder, abbreviations)
-  
-  data_in %>% 
+  data_df %>% 
     CALC.ModelGenerator(fill_models_df) %>%
     CALC.df_R2 %>%
     UTIL.AllAccessionToMain(all_R2) %>%
     `row.names<-`(NULL) %T>%
-    COMPILE.R2heatmap(R2_frame_name, subfolder, abbreviations) %>%
-    UTIL.StoreCSV(R2_frame_name, subfolder)
+    COMPILE.R2heatmap(R2_frame_name, paste0(subfolder, "\\Graphs"), abbreviations) %>%
+    UTIL.quickCSV(R2_frame_name, paste0(subfolder, "\\Tables"))
   
-  data_in %>% 
+  data_df %>% 
     CALC.ModelGenerator(fill_models_df) %>%
     CALC.df_SBC %>%
     UTIL.AllAccessionToMain(all_SBC) %>%
     `row.names<-`(NULL) %T>%
-    COMPILE.SBCheatmap(SBC_frame_name, subfolder, abbreviations) %>%
-    UTIL.StoreCSV(SBC_frame_name, subfolder)
+    COMPILE.SBCheatmap(SBC_frame_name, paste0(subfolder, "\\Graphs"), abbreviations) %>%
+    UTIL.quickCSV(SBC_frame_name, paste0(subfolder, "\\Tables"))
 }
