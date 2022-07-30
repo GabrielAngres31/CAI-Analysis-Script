@@ -16,7 +16,7 @@
 # Workstation Setup -------------------------------------------------------
 
 cat("Setting Working Directory...\n")
-setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script")
+setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\Script-v2")
 
 #Load relevant packages into library
 
