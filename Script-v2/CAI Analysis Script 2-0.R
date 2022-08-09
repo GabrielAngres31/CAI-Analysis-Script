@@ -38,6 +38,8 @@ library("stringr")
 library("viridis")
 library("pheatmap")
 library(RColorBrewer)
+library("data.table")
+
 
 
 # SWITCHBOARD Setup -------------------------------------------------------
@@ -115,23 +117,22 @@ SWITCHBOARD.models_multiplicative <- c(
   "fresh_weight~width+diameter+thickness", "fresh_weight~width*diameter*thickness",
   "fresh_weight~height+diameter+thickness", "fresh_weight~height*diameter*thickness",
   "fresh_weight~width+height+diameter+thickness", "fresh_weight~width*height*diameter*thickness"
-  #"I(width*height*diameter*thickness)"
 )
 
 SWITCHBOARD.models_multiplicative_abbr <- c(
-  "FW~W", "FW~H", "FW~D", "FW~T",
-  "FW~D/W",
-  "FW~W+H", "FW~W*H",
-  "FW~W+D", "FW~W*D",
-  "FW~W+T", "FW~W*T",
-  "FW~H+D", "FW~H*D",
-  "FW~H+T", "FW~H*T",
-  "FW~D+T", "FW~D*T",
-  "FW~W+H+D", "FW~W*H*D",
-  "FW~W+H+T", "FW~W*H*T",
-  "FW~W+D+T", "FW~W*D*T",
-  "FW~H+D+T", "FW~H*D*T",
-  "FW~W+H+D+T", "FW~W*H*D*T"
+  "W", "H", "D", "T",
+  "D/W",
+  "W+H", "W*H",
+  "W+D", "W*D",
+  "W+T", "W*T",
+  "H+D", "H*D",
+  "H+T", "H*T",
+  "D+T", "D*T",
+  "W+H+D", "W*H*D",
+  "W+H+T", "W*H*T",
+  "W+D+T", "W*D*T",
+  "H+D+T", "H*D*T",
+  "W+H+D+T", "W*H*D*T"
   #"I(width*height*diameter*thickness)"
 )
 
@@ -147,10 +148,10 @@ SWITCHBOARD.models_elliptical <- c(
 )
 
 SWITCHBOARD.models_elliptical_abbr <- c(
-  "FW~A", "FW~Th_A",
-  "FW~A+T", "FW~A*T",
-  "FW~Th_A+T", "FW~Th_A*T",
-  "FW~Th_A+T+PDD", "FW~Th_A*T*PDD"
+  "A", "Th_A",
+  "A+T", "A*T",
+  "Th_A+T", "Th_A*T",
+  "Th_A+T+PD", "Th_A*T*PD"
 )
 
 
@@ -165,10 +166,31 @@ DATA_OBJECTS.MODELS_multiplicative <- as.data.frame(SWITCHBOARD.models_multiplic
 DATA_OBJECTS.MODELS_elliptical <- as.data.frame(SWITCHBOARD.models_elliptical) %>%
   set_colnames(c("models"))
 
+DATA_OBJECTS.MODELS_multiplicative_abbr <- as.data.frame(SWITCHBOARD.models_multiplicative_abbr) %>%
+  set_colnames(c("models"))
+
+DATA_OBJECTS.MODELS_elliptical_abbr <- as.data.frame(SWITCHBOARD.models_elliptical_abbr) %>%
+  set_colnames(c("models"))
+
+DATA_OBJECTS.models_multiplicative.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_multiplicative, 4)
+DATA_OBJECTS.models_elliptical.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_elliptical, 2)
+
+DATA_OBJECTS.models_multiplicative_abbr.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_multiplicative_abbr, 4)
+DATA_OBJECTS.models_elliptical_abbr.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_elliptical_abbr, 2)
+
 cat("Generating Model Dataframes\n")
 DATA_OBJECTS.LinearRegressions_DF <- CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_intermeasure)
 DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT <- CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_multiplicative)
 DATA_OBJECTS.EllipticalRegressions_DF_UNFILT <- CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_elliptical)
+
+
+
+# DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT.split_plus <- DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT[SWITCHBOARD.models_multiplicative.splitinteraction[[1]]]
+# DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT.split_mult <- DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT[SWITCHBOARD.models_multiplicative.splitinteraction[[2]]]
+# 
+# DATA_OBJECTS.EllipticalRegressions_DF_UNFILT.split_plus <- DATA_OBJECTS.EllipticalRegressions_DF_UNFILT[SWITCHBOARD.models_elliptical.splitinteraction[[1]]]
+# DATA_OBJECTS.EllipticalRegressions_DF_UNFILT.split_mult <- DATA_OBJECTS.EllipticalRegressions_DF_UNFILT[SWITCHBOARD.models_elliptical.splitinteraction[[2]]]
+
 
 
 # DATA_OBJECT Generation: Filtered ---------------------------------------------
@@ -196,11 +218,36 @@ COMPILE.tukeygraphs(SWITCHBOARD.csvAUGMFILE)
 
 # Summary Statistic Heatmap Generation ------------------------------------------------------
 
+DATA_OBJECTS.csvAUGM_3PN
+DATA_OBJECTS.EllipticalRegressions_DF_UNFILT
+
 cat("Generating Heatmaps and Writing CSV Data\n")
-UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_intermeasure, "Lin_UNF",   "Heatmaps", SWITCHBOARD.models_intermeasure_abbr)
 
-UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_multiplicative, "Mult_UNF",  "Heatmaps", SWITCHBOARD.models_multiplicative_abbr)
-UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.MODELS_multiplicative, "Mult_3PN",  "Heatmaps", SWITCHBOARD.models_multiplicative_abbr)
+SWITCHBOARD.models_multiplicative.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_multiplicative, 5)
+SWITCHBOARD.models_elliptical.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_elliptical, 2)
 
-UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_elliptical, "Ellip_UNF", "Heatmaps", SWITCHBOARD.models_elliptical_abbr)
-UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.MODELS_elliptical, "Ellip_3PN", "Heatmaps", SWITCHBOARD.models_elliptical_abbr)
+SWITCHBOARD.models_multiplicative_abbr.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_multiplicative_abbr, 5)
+SWITCHBOARD.models_elliptical_abbr.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_elliptical_abbr, 2)
+
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_intermeasure, "Lin_UNF",   "Heatmaps", "Intermeasure Models", SWITCHBOARD.models_intermeasure_abbr)
+
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_multiplicative, "Mult_UNF",  "Heatmaps", "Multiplicative Models - Unfiltered Dataset",SWITCHBOARD.models_multiplicative_abbr)
+UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.MODELS_multiplicative, "Mult_3PN",  "Heatmaps", "Multiplicative Models - 3P/N Dataset", SWITCHBOARD.models_multiplicative_abbr)
+
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_elliptical, "Ellip_UNF", "Heatmaps", "Elliptical Models - Unfiltered Dataset", SWITCHBOARD.models_elliptical_abbr)
+UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.MODELS_elliptical, "Ellip_3PN", "Heatmaps", "Elliptical Models - 3P/N Dataset", SWITCHBOARD.models_elliptical_abbr)
+
+#---
+
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.models_multiplicative.splitinteraction[[1]], "Mult_UNF_plus",  "Heatmaps", "Multiplicative  Models - Unfiltered Dataset with No Interactions", DATA_OBJECTS.models_multiplicative_abbr.splitinteraction[[1]]$models)
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.models_multiplicative.splitinteraction[[2]], "Mult_UNF_mult",  "Heatmaps", "Multiplicative  Models- Unfiltered Dataset with Interactions", DATA_OBJECTS.models_multiplicative_abbr.splitinteraction[[2]]$models)
+
+UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.models_multiplicative.splitinteraction[[1]], "Mult_3PN_plus",  "Heatmaps", "Multiplicative Models - 3P/N Dataset with No Interactions", DATA_OBJECTS.models_multiplicative_abbr.splitinteraction[[1]]$models)
+UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.models_multiplicative.splitinteraction[[2]], "Mult_3PN_mult",  "Heatmaps", "Multiplicative Models - 3P/N Dataset with Interactions", DATA_OBJECTS.models_multiplicative_abbr.splitinteraction[[2]]$models)
+
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.models_elliptical.splitinteraction[[1]], "Ellip_UNF_plus",  "Heatmaps", "Elliptical Models - Unfiltered Dataset with No Interactions", DATA_OBJECTS.models_elliptical_abbr.splitinteraction[[1]]$models)
+UTIL.StoreHeatmapsAndFile(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.models_elliptical.splitinteraction[[2]], "Ellip_UNF_mult",  "Heatmaps", "Elliptical Models- Unfiltered Dataset with Interactions", DATA_OBJECTS.models_elliptical_abbr.splitinteraction[[2]]$models)
+
+UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.models_elliptical.splitinteraction[[1]], "Ellip_3PN_plus",  "Heatmaps", "Elliptical Models - 3P/N Dataset with No Interactions", DATA_OBJECTS.models_elliptical_abbr.splitinteraction[[1]]$models)
+UTIL.StoreHeatmapsAndFile(DATA_OBJECTS.csvAUGM_3PN, DATA_OBJECTS.models_elliptical.splitinteraction[[2]], "Ellip_3PN_mult",  "Heatmaps", "Elliptical Models - 3P/N Dataset with Interactions", DATA_OBJECTS.models_elliptical_abbr.splitinteraction[[2]]$models)
+

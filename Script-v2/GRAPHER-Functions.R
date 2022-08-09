@@ -77,16 +77,33 @@ GRAPHER.tukeyHypergraph <- function(tukey_edgelist, measure_string) {
 #' @param R2_data_df A dataframe with accession rows and model columns containing adj. R^2 values as doubles.
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
-GRAPHER.R2heatmap <- function(R2_data_df, abbreviations) {
+GRAPHER.R2heatmap <- function(R2_data_df, heatmap_title, abbreviations) {
+
   
-  R2_heat_palette <- colorRampPalette(brewer.pal(8, "RdYlGn"))(25)
+  #print(R2_data_df)
   
-  R2_data_df %>%
-    setNames(c("accession", abbreviations)) %>%
-    column_to_rownames("accession") %>%
-    data.matrix() %>%
-    heatmap(Rowv = NA, Colv = NA, col = R2_heat_palette)
+  #R2_data_df %>%
+    #setNames(c("accession", abbreviations)) %>%
+    #column_to_rownames("accession") %>%
+    #data.matrix() %>%
+    #heatmap(Rowv = NA, Colv = NA, col = R2_heat_palette, main = heatmap_title)
+  
+  if (!(is.vector(abbreviations))) {
+    abbreviations <- abbreviations$models
+  }
+  
+  heatmap_plot <- R2_data_df %>%
+    `colnames<-`(c("accession", abbreviations)) %>%
+    pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
+    mutate(models = factor(models, levels = abbreviations)) %>%
+    ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
+    geom_tile() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=1)) +
+    scale_fill_viridis(direction = 1)
+  print(heatmap_plot)
 }
+
+#FIGURE OUT HOW TO REORDER THE FACTORS PROPERLY!
 
 #' @name GRAPHER.SBCheatmap
 #' @description Generates a heatmap plot of the SBC values of all models in a particular model set, fitted over all accessions.
@@ -94,14 +111,47 @@ GRAPHER.R2heatmap <- function(R2_data_df, abbreviations) {
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
   
-GRAPHER.SBCheatmap <- function(SBC_data_df, abbreviations) {
+GRAPHER.SBCheatmap <- function(SBC_data_df, heatmap_title, abbreviations) {
 
   SBC_heat_palette <- rev(colorRampPalette(brewer.pal(8, "RdBu"))(25))
   
-  SBC_data_df %>%
-    setNames(c("accession", abbreviations)) %>%
-    column_to_rownames("accession") %>%
-    data.matrix() %>%
-    heatmap(Rowv = NA, Colv = NA, scale = "row", col = SBC_heat_palette)
+
+  # BIG PROBLEM WITH GENERATING THE HEATMAPS HERE!
+
+  if (!(is.vector(abbreviations))) {
+    abbreviations <- abbreviations$models
+  }
+  
+  heatmap_plot <- SBC_data_df %>%
+    `colnames<-`(c("accession", abbreviations)) %>%
+    {.[-1]} %>%
+    apply(MARGIN = 1, FUN = function(x) ((x-min(x))/max(x))) %>%
+    as.data.frame() %>%
+    rownames_to_column("models") %>%
+    pivot_longer(cols = -1, names_to = "accession", values_to = "values") %>%
+    mutate(models = factor(models, levels = abbreviations)) %>%
+    ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
+      geom_tile() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=1)) +
+      scale_fill_gradientn(direction = -1, colours = mako(256, option = "D"))
+  print(heatmap_plot)
+  
+  
+  # print("SBC")
+  # heatmap_plot <- apply(SBC_data_df[, -1], 1, scale) %>%
+  #   `rownames<-`(colnames(SBC_data_df)[-1]) %>%
+  #   pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
+  #   ggplot(aes(models, as.factor(accession), fill = values)) +
+  #     geom_tile()
+  
+  # heatmap_plot <- apply(test_SBC[,-1], 1, function(x)(x-min(x))/(max(x)-min(x))) %>%
+  #   `rownames<-`(colnames(test_SBC)[-1]) %>%
+  #   t() %>%
+  #   as.data.frame() %>%
+  #   rownames_to_column("accession") %>%
+  #   pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
+  #   ggplot(aes(models, as.factor(accession), fill = values)) +
+  #     geom_tile()
+  # print(heatmap_plot)
 }
 

@@ -67,9 +67,9 @@ COMPILE.tukeygraphs <- function(data_df) {
 #' @param subfolder The folder that the file should be stored in.
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
-COMPILE.R2heatmap <- function(R2_df_in, filenamestring, subfolder, abbreviations) {
+COMPILE.R2heatmap <- function(R2_df_in, filenamestring, subfolder, heatmap_title, abbreviations) {
   UTIL.quickPNG(filenamestring, subfolder)
-  GRAPHER.R2heatmap(R2_df_in, abbreviations)
+  GRAPHER.R2heatmap(R2_df_in, heatmap_title, abbreviations)
   dev.off()
 }
 
@@ -80,8 +80,8 @@ COMPILE.R2heatmap <- function(R2_df_in, filenamestring, subfolder, abbreviations
 #' @param subfolder The folder that the file should be stored in.
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
-COMPILE.SBCheatmap <- function(SBC_df_in, filenamestring, subfolder, abbreviations) {
+COMPILE.SBCheatmap <- function(SBC_df_in, filenamestring, subfolder, heatmap_title, abbreviations) {
   UTIL.quickPNG(filenamestring, subfolder)
-  GRAPHER.SBCheatmap(SBC_df_in, abbreviations)
+  GRAPHER.SBCheatmap(SBC_df_in, heatmap_title, abbreviations)
   dev.off()
 }

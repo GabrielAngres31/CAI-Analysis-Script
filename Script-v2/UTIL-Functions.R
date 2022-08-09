@@ -96,7 +96,7 @@ UTIL.AugmentModelWithLeverageTagging <- function(model_in) {
 
 UTIL.AllAccessionToMain <- function(model_df, add_list) {
   rowaddloc <- nrow(model_df) + 1 
-  model_df[rowaddloc, 1] <- "All_Accessions"
+  model_df[rowaddloc, 1] <- "All"
   for (model in names(add_list)) {
     coladdloc <- which(names(add_list) == model)
     model_df[rowaddloc, coladdloc+1] <- add_list[[model]]
@@ -114,8 +114,14 @@ UTIL.AllAccessionToMain <- function(model_df, add_list) {
 #' @param subfolder The folder that the file should be stored in.
 
 UTIL.quickPNG <- function(filenamestring, subfolder) {
+  png_ppi = 600
+  png_height = 4
+  png_width = 4
   filepath <- file.path(SWITCHBOARD.DIRECTORY, subfolder, filenamestring, fsep = "\\")
-  png(paste0(filepath, ".png"))
+  png(paste0(filepath, ".png"), 
+      width = png_width * png_ppi, 
+      height = png_height * png_ppi, 
+      res = png_ppi)
 }
 
 #' @name UTIL.quickCSV
@@ -141,7 +147,7 @@ UTIL.quickCSV <- function(data_df, filenamestring, subfolder) {
 #' @param subfolder The folder that the file should be stored in. 
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
-UTIL.StoreHeatmapsAndFile <- function(data_df, fill_models_df, filenamestring, subfolder, abbreviations) {
+UTIL.StoreHeatmapsAndFile <- function(data_df, fill_models_df, filenamestring, subfolder, heatmap_title, abbreviations) {
   
   all_R2 <- CALC.ModelGenerator_AllAccessions_R2(data_df, fill_models_df)
   all_SBC <- CALC.ModelGenerator_AllAccessions_SBC(data_df, fill_models_df)
@@ -154,7 +160,7 @@ UTIL.StoreHeatmapsAndFile <- function(data_df, fill_models_df, filenamestring, s
     CALC.df_R2 %>%
     UTIL.AllAccessionToMain(all_R2) %>%
     `row.names<-`(NULL) %T>%
-    COMPILE.R2heatmap(R2_frame_name, paste0(subfolder, "\\Graphs"), abbreviations) %>%
+    COMPILE.R2heatmap(R2_frame_name, paste0(subfolder, "\\Graphs"), heatmap_title, abbreviations) %>%
     UTIL.quickCSV(R2_frame_name, paste0(subfolder, "\\Tables"))
   
   data_df %>% 
@@ -162,6 +168,30 @@ UTIL.StoreHeatmapsAndFile <- function(data_df, fill_models_df, filenamestring, s
     CALC.df_SBC %>%
     UTIL.AllAccessionToMain(all_SBC) %>%
     `row.names<-`(NULL) %T>%
-    COMPILE.SBCheatmap(SBC_frame_name, paste0(subfolder, "\\Graphs"), abbreviations) %>%
+    COMPILE.SBCheatmap(SBC_frame_name, paste0(subfolder, "\\Graphs"), heatmap_title, abbreviations) %>%
     UTIL.quickCSV(SBC_frame_name, paste0(subfolder, "\\Tables"))
+}
+
+#' @name UTIL.SplitModelListOnInteractions
+#' @description Splits a master model list into two lists with separate + and * models for more visually accessible heatmap graphing.
+#' @param model_list A vector of model strings.
+#' @param num_keep THe number of initial models to put in both output lists.
+#' @returns A list with two string vectors.
+
+UTIL.SplitModelListOnInteractions <- function(model_list, num_keep) {
+  #print(model_list)
+  keep_names <- model_list$models[1:num_keep]
+  
+  #no_interactions_piece <- model_list[which("+" %in% model_list$models),]
+  #interactions_piece <- model_list[which("*" %in% model_list$models),]
+  
+  no_interactions_piece <- model_list[which(model_list$models %like% "[+]"),]
+  interactions_piece <- model_list[which(model_list$models %like% "[*]"),]
+  
+  no_inter_list <- as.data.frame(c(keep_names, no_interactions_piece)) %>%
+    `colnames<-`(c("models"))
+  inter_list <- as.data.frame(c(keep_names, interactions_piece)) %>%
+    `colnames<-`(c("models"))
+  
+  return(list(no_inter_list, inter_list))
 }
