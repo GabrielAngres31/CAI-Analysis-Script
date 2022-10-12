@@ -108,16 +108,35 @@ UTIL.AllAccessionToMain <- function(model_df, add_list) {
 
 # File Creation Utilities -------------------------------------------------
 
+#' @name UTIL.FolderPathCheck
+#' @description Checks to see if a folder exists, and makes it if it doesn't.
+#' @param subfolder_string A string or path containing a valid subfolder.
+
+UTIL.FolderPathCheck <- function(subfolder_string) {
+  path_components <- str_split(subfolder_string, "\\\\")[[1]]
+  for (position in c(1:length(path_components))) {
+    checkpath <- path_components[1:position] %>%
+      paste0(collapse = "\\\\")
+    if(!(file.exists(checkpath))) {
+      dir.create(file.path(checkpath))
+    } 
+  }
+}
+
 #' @name UTIL.quickPNG
 #' @description Creates a .png object with a given name to store an image in.
 #' @param filenamestring The name given for the .png file.
 #' @param subfolder The folder that the file should be stored in.
 
-UTIL.quickPNG <- function(filenamestring, subfolder) {
-  png_ppi = 600
-  png_height = 4
-  png_width = 4
+UTIL.quickPNG <- function(filenamestring, subfolder, dimensions = c(600, 4, 4)) {
+  
+  png_ppi = dimensions[1]
+  png_height = dimensions[2]
+  png_width = dimensions[3]
+  
+  UTIL.FolderPathCheck(subfolder)
   filepath <- file.path(SWITCHBOARD.DIRECTORY, subfolder, filenamestring, fsep = "\\")
+  
   png(paste0(filepath, ".png"), 
       width = png_width * png_ppi, 
       height = png_height * png_ppi, 
@@ -131,7 +150,10 @@ UTIL.quickPNG <- function(filenamestring, subfolder) {
 #' @param subfolder The folder that the file should be stored in.
 
 UTIL.quickCSV <- function(data_df, filenamestring, subfolder) {
+  
+  UTIL.FolderPathCheck(subfolder)
   filepath <- file.path(SWITCHBOARD.DIRECTORY, subfolder, filenamestring, fsep = "\\")
+  
   write.csv(
     data_df,
     paste0(filepath, ".csv"), 
@@ -148,6 +170,10 @@ UTIL.quickCSV <- function(data_df, filenamestring, subfolder) {
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
 UTIL.StoreHeatmapsAndFile <- function(data_df, fill_models_df, filenamestring, subfolder, heatmap_title, abbreviations) {
+  
+  if (!(dir.exists(subfolder))) {
+    dir.create(subfolder)
+  }
   
   all_R2 <- CALC.ModelGenerator_AllAccessions_R2(data_df, fill_models_df)
   all_SBC <- CALC.ModelGenerator_AllAccessions_SBC(data_df, fill_models_df)

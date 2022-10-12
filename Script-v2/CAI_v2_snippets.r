@@ -220,3 +220,34 @@ UTIL.AugmentModelWithLeverageTagging <- function(model_in) {
   return(model_out)
 }
 
+
+
+test_SBC_data_df <- CALC.df_SBC(CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_elliptical))
+test_R2_data_df <- CALC.df_R2(CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_elliptical))
+
+
+plot_ly(SWITCHBOARD.csvAUGMFILE, x = ~width, y = ~height, z = ~thickness, color =  ~as.factor(accession))
+plot_ly(SWITCHBOARD.csvAUGMFILE, x = ~width, y = ~height, z = ~diameter, color =  ~as.factor(accession))
+plot_ly(DATA_OBJECTS.csvAUGM_3PN, x = ~width, y = ~height, z = ~diameter, color =  ~as.factor(accession))
+
+plot_ly(SWITCHBOARD.csvAUGMFILE, 
+        x = ~width, y = ~height, z = ~thickness, 
+        color = ~as.factor(accession), 
+        colors =  c("#009a00", "#ef1101", "#5c0300", "#fd9206", "#a45d00", "#fef636", "#8f8a00", "#0006a4", "#0efd0e", "#010afb", "#ba20fd", "#7600a8", "#080f0f", "#faffff"))
+
+
+
+#FOR TIZNADO HERNANDEZ
+for(accession in SWITCHBOARD.ACCESSIONLIST) {
+  print(accession)
+  proto_Pval <- SWITCHBOARD.csvAUGMFILE[SWITCHBOARD.csvAUGMFILE$accession == accession,] %>% lm("Area~Theo_Area", .) %>% summary
+  Pval <- proto_Pval$coefficients["Theo_Area", "Pr(>|t|)"]
+  print(Pval)
+}
+
+for(accession in SWITCHBOARD.ACCESSIONLIST) {
+  print(accession)
+  proto_Pval <- DATA_OBJECTS.csvAUGM_3PN[DATA_OBJECTS.csvAUGM_3PN$accession == accession,] %>% lm("Area~Theo_Area", .) %>% summary
+  Pval <- proto_Pval$coefficients["Theo_Area", "Pr(>|t|)"]
+  print(Pval)
+}

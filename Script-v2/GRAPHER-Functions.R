@@ -40,11 +40,29 @@ GRAPHER.intermeasure <- function(fits_df, accession, modelname) {
   intermeasure_plot_out <- ggplot(model_df, aes(!!as.symbol(x_measure), !!as.symbol(y_measure),
                                                 label = ifelse(tagged == "N/A", "", ID))) +
     geom_point(aes(color = tagged)) +
+    xlab(x_measure) +
+    ylab(y_measure) +
     labs(title = (paste0("INTERMEASURE\nMODEL:", modelname, "\nACCESSION:", accession, "\nADJ.R^2:", adj_rsq))) +
     geom_text(hjust=1.05, vjust=0) +
     geom_text(hjust=-.20, vjust=0) +
     geom_abline(intercept = intercept, slope = slope)
   plot(intermeasure_plot_out)
+}
+
+#' @name GRAPHER.ViolinPlot
+#' @description Generates a Violin plot of the range of valus of a measure over all accessions.
+#' @param data_df The table of measure values by individual pads.
+#' @param measure The specific measure of interest in the data table.
+
+GRAPHER.ViolinPlot <- function(data_df, measure) {
+  violin_plot <- ggplot(data_df, aes(get(measure), as.factor(accession), fill = as.factor(accession))) +
+    geom_violin(trim=F, show.legend = F) +
+    geom_boxplot(width = 0.2) +
+    xlab(measure) +
+    ylab("Accession") + 
+    ggtitle(paste0("Distribution of ", measure, " by Accession")) + 
+    theme(legend.position = "none")
+  plot(violin_plot)
 }
 
 # Tukey Comparison and Hypergraphs ----------------------------------------
@@ -75,18 +93,10 @@ GRAPHER.tukeyHypergraph <- function(tukey_edgelist, measure_string) {
 #' @name GRAPHER.R2heatmap
 #' @description Generates a heatmap plot of the adj. R^2 values of all models in a particular model set, fitted over all accessions.
 #' @param R2_data_df A dataframe with accession rows and model columns containing adj. R^2 values as doubles.
+#' @param heatmap_title A string with the title of the heatmap.
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
 
 GRAPHER.R2heatmap <- function(R2_data_df, heatmap_title, abbreviations) {
-
-  
-  #print(R2_data_df)
-  
-  #R2_data_df %>%
-    #setNames(c("accession", abbreviations)) %>%
-    #column_to_rownames("accession") %>%
-    #data.matrix() %>%
-    #heatmap(Rowv = NA, Colv = NA, col = R2_heat_palette, main = heatmap_title)
   
   if (!(is.vector(abbreviations))) {
     abbreviations <- abbreviations$models
@@ -97,61 +107,84 @@ GRAPHER.R2heatmap <- function(R2_data_df, heatmap_title, abbreviations) {
     pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
     mutate(models = factor(models, levels = abbreviations)) %>%
     ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
-    geom_tile() +
-    theme(axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=1)) +
-    scale_fill_viridis(direction = 1)
+      geom_tile() +
+      xlab("Models") +
+      ylab("Accession") +
+      ggtitle(heatmap_title) +
+      theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
+      scale_fill_viridis(direction = -1, begin = max(R2_data_df[-1]), end = ifelse(min(R2_data_df[-1]) < 0, 0, min(R2_data_df[-1])))
   print(heatmap_plot)
 }
 
-#FIGURE OUT HOW TO REORDER THE FACTORS PROPERLY!
-
 #' @name GRAPHER.SBCheatmap
 #' @description Generates a heatmap plot of the SBC values of all models in a particular model set, fitted over all accessions.
-#' @param SBC_data_df A dataframe with accession rows and model columns containing SBC values as doubles.
+#' @param SBC_data_df A dataframe with accession rows and model columns containing SBC values as doubles. 
+#' @param heatmap_title A string with the title of the heatmap.
 #' @param abbreviations A vector of string abbreviations for the models for intelligible graphing.
-
   
 GRAPHER.SBCheatmap <- function(SBC_data_df, heatmap_title, abbreviations) {
-
-  SBC_heat_palette <- rev(colorRampPalette(brewer.pal(8, "RdBu"))(25))
-  
-
-  # BIG PROBLEM WITH GENERATING THE HEATMAPS HERE!
 
   if (!(is.vector(abbreviations))) {
     abbreviations <- abbreviations$models
   }
   
+  normal_table_by_row <- function(table_in) {
+    for (row in c(1:nrow(table_in))) {
+      vector_in <- table_in[row,]
+      table_in[row,] <- (vector_in-min(vector_in))/max(vector_in)
+      table_in[row,] <- table_in[row,] * 1/max(table_in[row,])
+    }
+    return(table_in)
+  }
+
+  
   heatmap_plot <- SBC_data_df %>%
+    `rownames<-`(c(SWITCHBOARD.ACCESSIONLIST, "All")) %>%
     `colnames<-`(c("accession", abbreviations)) %>%
     {.[-1]} %>%
-    apply(MARGIN = 1, FUN = function(x) ((x-min(x))/max(x))) %>%
-    as.data.frame() %>%
-    rownames_to_column("models") %>%
-    pivot_longer(cols = -1, names_to = "accession", values_to = "values") %>%
+    normal_table_by_row() %>%
+    rownames_to_column("accession") %>%
+    `rownames<-`(rownames(SBC_data_df)) %>%
+    pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
     mutate(models = factor(models, levels = abbreviations)) %>%
-    ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
+    ggplot(aes(models, as.ordered(accession), fill = values)) +
       geom_tile() +
-      theme(axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=1)) +
-      scale_fill_gradientn(direction = -1, colours = mako(256, option = "D"))
+      xlab("Models") +
+      ylab("Accession") +
+      ggtitle(heatmap_title) +
+      theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
+      scale_fill_viridis(direction = -1, option = "A")
   print(heatmap_plot)
-  
-  
-  # print("SBC")
-  # heatmap_plot <- apply(SBC_data_df[, -1], 1, scale) %>%
-  #   `rownames<-`(colnames(SBC_data_df)[-1]) %>%
-  #   pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
-  #   ggplot(aes(models, as.factor(accession), fill = values)) +
-  #     geom_tile()
-  
-  # heatmap_plot <- apply(test_SBC[,-1], 1, function(x)(x-min(x))/(max(x)-min(x))) %>%
-  #   `rownames<-`(colnames(test_SBC)[-1]) %>%
-  #   t() %>%
-  #   as.data.frame() %>%
-  #   rownames_to_column("accession") %>%
-  #   pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
-  #   ggplot(aes(models, as.factor(accession), fill = values)) +
-  #     geom_tile()
-  # print(heatmap_plot)
 }
 
+
+
+
+# 3D Scatterplots ---------------------------------------------------------
+
+GRAPHER.3DScatterPlot <- function(data_df, x_axis, y_axis, z_axis) {
+  plotpalette_3D <- c("#009a00", # Green
+                      "#ef1101", # Bright Red
+                      "#5c0300", # Burgundy
+                      "#fd9206", # Pale Orange
+                      "#a45d00", # Light Brown
+                      "#fef636", # Pale Yellow
+                      "#8f8a00", # Dirty Yellow
+                      "#0006a4", # Dark Blue
+                      "#0efd0e", # Bright Green
+                      "#010afb", # Bright Blue
+                      "#ba20fd", # Lavender
+                      "#7600a8", # Purple
+                      "#080f0f", # Black
+                      "#faffff"  # White
+                      ) #Fix these colors later
+  
+  print(data_df["width"])
+  
+  accession_vector <- data_df$accession
+  x_axis <- data_df[x_axis]
+  y_axis <- data_df[y_axis]
+  z_axis <- data_df[z_axis]
+
+  plot_ly(x = x_axis, y = y_axis, z = z_axis, color = as.factor(accession_vector), colors =  plotpalette_3D)
+}

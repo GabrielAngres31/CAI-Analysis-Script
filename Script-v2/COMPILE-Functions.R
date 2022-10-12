@@ -1,13 +1,16 @@
 # qqGen and Intermeasure Plots --------------------------------------------
 
 #' @name COMPILE.qqGen
-#' @description Generates and stores all Quantile-Quantile plot for measures in a dataframe as .png files.
+#' @description Generates and stores 
+#' all Quantile-Quantile plot for measures in a dataframe as .png files.
 #' @param data_df The table of measure values by individual pads.
+#' @param accessions A vector of accessions IDs.
+#' @param measures A vector of measures to generate plots for.
 
-COMPILE.qqGen <- function(data_df) {
+COMPILE.qqGen <- function(data_df, accessions, measures) {
 
-  for(accession in SWITCHBOARD.ACCESSIONLIST) {
-    for(measure in SWITCHBOARD.qqMeasures_VEC) {
+  for(accession in accessions) {
+    for(measure in measures) {
       GRAPHER.qqGen(data_df, accession, measure)
     }
   }
@@ -23,12 +26,14 @@ COMPILE.intermeasure <- function(model_df) {
 
   
   for(accession in SWITCHBOARD.ACCESSIONLIST) {
+    cat(paste0("For Accession ", accession, "\n"))
     for (modelname in modelnames) {
-      
+      cat(paste0(modelname, "..."))
       UTIL.quickPNG(paste0(accession, "_", modelname, "_INTERMEASURE"), "INTERMEASURE")
       GRAPHER.intermeasure(model_df, accession, modelname)
       dev.off()
     }
+    cat("\n")
   }
 }
 
@@ -57,7 +62,6 @@ COMPILE.tukeygraphs <- function(data_df) {
   }
 } 
 
-
 # Summary Statistic Graphs ------------------------------------------------
 
 #' @name COMPILE.R2heatmap
@@ -84,4 +88,18 @@ COMPILE.SBCheatmap <- function(SBC_df_in, filenamestring, subfolder, heatmap_tit
   UTIL.quickPNG(filenamestring, subfolder)
   GRAPHER.SBCheatmap(SBC_df_in, heatmap_title, abbreviations)
   dev.off()
+}
+
+#' @name COMPILE.ViolinPlot
+#' @description Generates and stores a Violin plot of the range of values for a particular set of measures across multiple accessions.
+#' @param data_df The table of measure values by individual pads.
+#' @param measurelist The list of measures to iterate over, as a character vector.
+#' @param data_title The title of the heatmap plot, as a string.
+
+COMPILE.ViolinPlot <- function(data_df, measurelist, data_title) {
+  for (measure in measurelist) {
+    UTIL.quickPNG(paste0(measure, " -  ", data_title), "Violin_Graphs\\Graphs")
+    GRAPHER.ViolinPlot(data_df, measure)
+    dev.off()
+  }
 }

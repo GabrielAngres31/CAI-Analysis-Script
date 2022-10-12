@@ -253,3 +253,99 @@ CALC.df_R2 <- function(fits_df) {
   }
   return(return_df)
 }
+
+
+# Result Comparison Functions ---------------------------------------------
+# These functions do things slightly differently from previously defined functions, so they take previously defined environment variables and do not take any parameters.
+
+
+#' @name CALC.CompareREIS_FRESHWEIGHT
+#' @description Compares Reis et. al.'s regression for Cladode Fresh weight on their data with the same formula type on the current data,
+#' as well as the full multiplicative and elliptical models for fresh weight created in this analysis.
+
+CALC.CompareREIS_FRESHWEIGHT <- function() {
+  DATA_OBJECTS.Comparison.REIS.freshweight <- data.frame(matrix(0.91, ncol = 1, nrow = 15)) %>%
+    mutate(a = DATA_OBJECTS.comparison_mult_R2_FILT$`fresh_weight~width*height*thickness`) %>%
+    mutate(b = DATA_OBJECTS.comparison_mult_R2_FILT$`fresh_weight~width*height*diameter*thickness`) %>%
+    mutate(c = DATA_OBJECTS.comparison_ellip_R2_FILT$`fresh_weight~Theo_Area*thickness*Pade_Derived_Diam`) %>%
+    `rownames<-`(c(SWITCHBOARD.ACCESSIONLIST, "All")) %>%
+    `colnames<-`(c("Reis L*W*T", "L*W*T", "L*W*T*D", "Full Ellip.")) %>%
+    rownames_to_column("accession") %>%
+    select(c(1, 3, 4, 5, 2)) %>%
+    `rownames<-`(c(SWITCHBOARD.ACCESSIONLIST, "All"))
+  
+  UTIL.quickPNG("Reis-et-al FW Compare", "Heatmaps\\Graphs")
+  
+  heatmap_plot <- DATA_OBJECTS.Comparison.REIS.freshweight %>% pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
+    mutate(models = factor(models, levels = colnames(DATA_OBJECTS.Comparison.REIS.freshweight))) %>%
+    ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
+    geom_tile() +
+    xlab("Models") +
+    ylab("Accession") +
+    ggtitle("Reis-et-al FW Compare") +
+    theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
+    scale_fill_viridis(direction = -1, begin = max(DATA_OBJECTS.Comparison.REIS.freshweight[-1]), end = ifelse(min(DATA_OBJECTS.Comparison.REIS.freshweight[-1]) < 0, 0, min(DATA_OBJECTS.Comparison.REIS.freshweight[-1])))
+  print(heatmap_plot)
+  
+  dev.off()
+  
+  UTIL.quickCSV(DATA_OBJECTS.Comparison.REIS.freshweight, "Reis-et-al FW Compare", "Heatmaps\\Tables")
+}
+
+#' @name CALC.CompareREIS_AREA
+#' @description Compares Reis et. al.'s regression for cladode area on their data with the same formula type on the current data,
+#' as well as the elliptical approximation and diameter-augmented approximation (A_th*D) on the current data.
+
+CALC.CompareREIS_AREA <- function() {
+  
+  DATA_OBJECTS.Comparison.REIS.area <- DATA_OBJECTS.ComparativeRegressions_REIS_AREA_UNFILT %>%
+    CALC.df_R2() %>%
+    UTIL.AllAccessionToMain(CALC.ModelGenerator_AllAccessions_R2(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.Comparison.REIS.area)) %>%
+    `colnames<-`(c("accession", SWITCHBOARD.models_to_compare.REIS.AREA_abbr)) %>%
+    mutate("Reis Area" = 0.91)
+  
+  UTIL.quickPNG("Reis-et-al Area Compare", "Heatmaps\\Graphs")
+  
+  heatmap_plot <- DATA_OBJECTS.Comparison.REIS.area %>% pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
+    mutate(models = factor(models, levels = colnames(DATA_OBJECTS.Comparison.REIS.area))) %>%
+    ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
+    geom_tile() +
+    xlab("Models") +
+    ylab("Accession") +
+    ggtitle("Reis-et-al Area Compare") +
+    theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
+    scale_fill_viridis(direction = -1, begin = max(DATA_OBJECTS.Comparison.REIS.area[-1]), end = ifelse(min(DATA_OBJECTS.Comparison.REIS.area[-1]) < 0, 0, min(DATA_OBJECTS.Comparison.REIS.area[-1])))
+  print(heatmap_plot)
+  
+  dev.off()
+  
+  UTIL.quickCSV(DATA_OBJECTS.Comparison.REIS.area, "Reis-et-al Area Compare", "Heatmaps\\Tables")
+}
+
+#' @name CALC.CompareREIS_DRYWEIGHT
+#' @description 
+CALC.CompareREIS_DRYWEIGHT <- function() {
+  DATA_OBJECTS.Comparison.REIS.dryweight <- DATA_OBJECTS.ComparativeRegressions_REIS_DRYWEIGHT_UNFILT %>%
+    CALC.df_R2() %>%
+    UTIL.AllAccessionToMain(CALC.ModelGenerator_AllAccessions_R2(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.Comparison.REIS.dryweight)) %>%
+    `colnames<-`(c("accession", SWITCHBOARD.models_to_compare.REIS.DRYWEIGHT_abbr)) %>%
+    mutate("Reis DW" = 0.72) 
+  
+  UTIL.quickPNG("Reis-et-al Dry Weight Compare", "Heatmaps\\Graphs")
+  
+  heatmap_plot <- DATA_OBJECTS.Comparison.REIS.dryweight %>% pivot_longer(cols = -1, names_to = "models", values_to = "values") %>%
+    mutate(models = factor(models, levels = colnames(DATA_OBJECTS.Comparison.REIS.dryweight))) %>%
+    ggplot(aes(as.factor(models), as.factor(accession), fill = values)) +
+    geom_tile() +
+    xlab("Models") +
+    ylab("Accession") +
+    ggtitle("Reis-et-al Dry Weight Compare") +
+    theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
+    scale_fill_viridis(direction = -1, begin = max(DATA_OBJECTS.Comparison.REIS.dryweight[-1]), end = ifelse(min(DATA_OBJECTS.Comparison.REIS.dryweight[-1]) < 0, 0, min(DATA_OBJECTS.Comparison.REIS.dryweight[-1])))
+  print(heatmap_plot)
+  
+  dev.off()
+  
+  UTIL.quickCSV(DATA_OBJECTS.Comparison.REIS.dryweight, "Reis-et-al Dry Weight Compare", "Heatmaps\\Tables")
+}
+
