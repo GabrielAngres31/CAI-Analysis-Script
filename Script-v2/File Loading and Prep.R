@@ -32,6 +32,8 @@ SWITCHBOARD.csvMAINFILE <- read.csv(file = DATA_FILE)
 
 # This section hard-codes the dry_weight data collected in the experiment for addition into the data set.
 
+### USE THIS one as agument file 
+# https://community.rstudio.com/t/recognize-usr-bin-env-rscript-header-as-r-script/59237
 SWITCHBOARD.FRESH_DRY_RAWS <- tribble(
   ~accession, ~mean_freshweight, ~SEM_mean_fresh, ~mean_dryweight, ~SEM_mean_dry,
   242, 9.17, 0.94, 0.6, 0.07,
@@ -56,8 +58,10 @@ SWITCHBOARD.DRY_PROPORTIONS <- SWITCHBOARD.FRESH_DRY_RAWS %>%
   select(accession, proportion)
 
 cat("::| Setting Accession List...\n")
+## This one could be read from the file load
 SWITCHBOARD.ACCESSIONLIST <- c(242, 246, 319, 325, 326, 390, 572, 580, 582, 584, 585, 839, 845, 854)
 
+## Save the CSV file
 cat("::| Setting Derived Measures...\n")
 SWITCHBOARD.csvAUGMFILE <- SWITCHBOARD.csvMAINFILE %>%
   mutate(H_div_W = height / width,
@@ -211,6 +215,8 @@ SWITCHBOARD.models_to_compare.REIS.DRYWEIGHT_abbr <- c(
 #SWITCHBOARD.models_to_compare.REIS.DRY_WEIGHT
 
 # DATA_OBJECT Generation: Unfiltered --------------------------------------------------
+### https://stackoverflow.com/questions/16714020/loop-through-data-frame-and-variable-names
+
 
 cat("::| Polishing Model Guides...\n")
 DATA_OBJECTS.MODELS_intermeasure$models <- apply(DATA_OBJECTS.MODELS_intermeasure[, c("yname", "xname")], 1, paste, collapse = "~") 
@@ -254,6 +260,8 @@ DATA_OBJECTS.models_multiplicative_abbr.splitinteraction_RATIO <- UTIL.SplitMode
 DATA_OBJECTS.models_elliptical_abbr.splitinteraction <- UTIL.SplitModelListOnInteractions(DATA_OBJECTS.MODELS_elliptical_abbr, 2)
 
 cat("Generating Model Dataframes\n")
+
+### loop 
 DATA_OBJECTS.LinearRegressions_DF <- CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_intermeasure)
 DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT <- CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_multiplicative)
 DATA_OBJECTS.MultiplicativeRegressions_DF_UNFILT_RATIO <- CALC.ModelGenerator(SWITCHBOARD.csvAUGMFILE, DATA_OBJECTS.MODELS_multiplicative_RATIO)
