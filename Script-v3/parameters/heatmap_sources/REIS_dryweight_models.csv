@@ -1,0 +1,4 @@
+model,abbreviation
+dry_weight~width*thickness,DW~W*T
+dry_weight~width*thickness*Pade_Derived_Diam,DW~W*T*pdD
+dry_weight~Theo_Area*thickness*Pade_Derived_Diam,DW~A_th*T*pdD

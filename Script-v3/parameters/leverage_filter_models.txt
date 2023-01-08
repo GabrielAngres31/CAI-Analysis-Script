@@ -1,0 +1,7 @@
+fresh_weight~width
+fresh_weight~height
+fresh_weight~diameter
+fresh_weight~thickness
+height~width
+diameter~width
+diameter~height

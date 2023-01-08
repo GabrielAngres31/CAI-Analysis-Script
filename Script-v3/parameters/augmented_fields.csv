@@ -1,0 +1,12 @@
+﻿field,result
+H_div_W,height/width
+FW_div_W,fresh_weight/width
+FW_div_D,fresh_weight/diameter
+FW_div_H,fresh_weight/height
+FW_div_T,fresh_weight/thickness
+D_div_W,diameter/width
+Theo_Area,pi*height*width*0.25
+PartRatio,((height-width)/(height+width))^2
+Pade_Peri,pi*(height+width)*(64-3*PartRatio^2)/(64-16*PartRatio)
+Pade_Derived_Diam,Pade_Peri/pi
+dry_weight,proportion*fresh_weight

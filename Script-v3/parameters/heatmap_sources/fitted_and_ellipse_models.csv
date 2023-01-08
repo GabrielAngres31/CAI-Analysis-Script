@@ -1,0 +1,11 @@
+model,abbreviation
+fresh_weight~Area,A
+fresh_weight~Theo_Area,Th_A
+fresh_weight~Area+thickness,A+T
+fresh_weight~Area*thickness,A*T
+fresh_weight~Theo_Area+thickness,Th_A+T
+fresh_weight~Theo_Area*thickness,Th_A*T
+fresh_weight~Area+thickness+diameter,A+T+D
+fresh_weight~Area*thickness*diameter,A*T*D
+fresh_weight~Theo_Area+thickness+Pade_Derived_Diam,Th_A+T+PD
+fresh_weight~Theo_Area*thickness*Pade_Derived_Diam,Th_A*T*PD

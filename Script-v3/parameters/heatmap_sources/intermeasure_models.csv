@@ -1,0 +1,11 @@
+﻿model,abbreviation
+fresh_weight~width,FW~W
+fresh_weight~height,FW~H
+fresh_weight~diameter,FW~D
+fresh_weight~thickness,FW~T
+height~width,H~W
+diameter~width,D~W
+thickness~width,T~W
+diameter~height,D~H
+thickness~height,T~H
+thickness~diameter,T~D
