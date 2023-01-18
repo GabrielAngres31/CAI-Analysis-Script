@@ -7,3 +7,4 @@ diameter
 thickness
 accession
 species
+dry_weight

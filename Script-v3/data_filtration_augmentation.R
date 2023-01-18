@@ -1,23 +1,31 @@
-REQUIRED_LIBRARIES <- c("dplyr", "tibble", "rsq", "car", "Rcmdr", "hash", "multcompView", "HyperG", "plotly", "htmlwidgets", "magrittr", "tidyr", "multiApply", "stringr", "viridis", "RColorBrewer", "data.table")
-
-library("dplyr")
-library("tibble")
-library("rsq")
-library("car")
-library("Rcmdr")
-library("hash")
-library("multcompView")
-library("HyperG")
-library("plotly")
-library("htmlwidgets")
-library("magrittr")
-library("tidyr")
-library("multiApply")
-library("stringr")
-library("viridis")
-library("pheatmap")
-library("RColorBrewer")
-library("data.table")
+REQUIRED_LIBRARIES <- c("dplyr", 
+                        "tibble", 
+                        "rsq", 
+                        "car", 
+                        "Rcmdr",
+                        "hash",
+                        "multcompView",
+                        "HyperG",
+                        "plotly",
+                        "htmlwidgets", 
+                        "magrittr",
+                        "tidyr",
+                        "multiApply",
+                        "stringr",
+                        "viridis",
+                        "RColorBrewer",
+                        "data.table",
+                        "rgl",
+                        "ggplot2",
+                        "knitr",
+                        "rglwidget") 
+#
+GET_LIBRARIES <- REQUIRED_LIBRARIES[!(REQUIRED_LIBRARIES %in% installed.packages()[,"Package"])]
+#
+if(length(GET_LIBRARIES)) install.packages(GET_LIBRARIES)
+#
+#
+lapply(REQUIRED_LIBRARIES,function(x){library(x,character.only=TRUE)})
 
 setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\Script-v3")
 
@@ -52,7 +60,8 @@ UTILITY.folderpathcheck <- function(subfolder_string, silenced = FALSE) {
 }
 
 # Creates a PNG at a given file path with default dimensions 600ppi, 4 inches height and width.
-# Relies on there being an existing plot object to store.
+# Creates the directory if it does not exist.
+# Relies on there being an existing PNG object to store into.
 UTILITY.quickPNG <- function(filenamestring, subfolder, dimensions = c(600, 4, 4)) {
   
   # Set the dimensions of the image to store.
@@ -70,6 +79,15 @@ UTILITY.quickPNG <- function(filenamestring, subfolder, dimensions = c(600, 4, 4
       width = png_width * png_ppi, 
       height = png_height * png_ppi, 
       res = png_ppi)
+}
+
+# Writes a csv at a given file path.
+# Creates a directory if it does not exist.
+UTILITY.quickCSV <- function(write_table, filenamestring, subfolder) {
+  UTILITY.folderpathcheck(subfolder, silenced = TRUE)
+  filepath <- file.path(subfolder, filenamestring, fsep = "\\")
+  
+  write.csv(write_table, filepath)
 }
 
 # Check if the dataframe contains the columns needed for the analysis
@@ -108,6 +126,7 @@ UTILITY.accessioncheck <- function(target_accessions, source_data = DATA.unfilte
     stop(paste0("MESSAGE: Please check that you have a valid input for \"accession\" for ", calling_function_name, ". You passed [", target_accessions, "]\n"))
   }
 } 
+
 
 
 # Data Filtration -----------------
@@ -312,20 +331,21 @@ GENERATOR.qqGen <- function(measure, target_accession, source_data = DATA.unfilt
 }
 
 # This function takes an input dataframe and a choice of measures, and stores a violin plot of the measure across each accession.
-GENERATOR.violin_plot <- function(plot_data, measure) {
+GENERATOR.violin_plot <- function(measure, plotname, source_data = DATA.unfiltered) {
   
   # Prepare file to write plot image to
-  plot_filename  <- paste0(measure, "_distribution.png")
+  plot_filename  <- paste0(measure, "_distribution_", plotname, ".jpg")
   plot_subfolder <- "image_output\\violin_plots"
+  
   UTILITY.quickPNG(plot_filename, plot_subfolder)
   
   # Generate the violin plot file in ggplot
-  violin_plot <- ggplot(plot_data, aes(get(measure), as.factor(accession), fill = as.factor(accession))) +
+  violin_plot <- ggplot(source_data, aes(get(measure), as.factor(accession), fill = as.factor(accession))) +
     geom_violin(trim=F, show.legend = F) +
     geom_boxplot(width = 0.2) +
     xlab(measure) +
     ylab("Accession") + 
-    ggtitle(paste0("Distribution of ", measure, " by Accession")) + 
+    ggtitle(paste0(measure, " by Accession")) + 
     theme(legend.position = "none")
   
   # Plot the plot
@@ -372,7 +392,7 @@ GENERATOR.heatmap_table <- function(models_and_abbreviations_df, model_statistic
       abbr <- models_abbr_list[[model]]
       
       # Get the required value for the particular accession and model
-      value <- GENERATOR.modelFinder(model, accession_choice = accession, return_params = model_statistic)
+      value <- GENERATOR.modelFinder(model, accession_choice = accession, return_params = model_statistic, source_data = source_data)
       
       # Set the cell value
       heatmap_table[accession, abbr] <- value
@@ -530,7 +550,7 @@ GENERATOR.fitline_plot <- function(model_string, accession_choice, source_data =
 }
 
 # This function generates a 3D scatterplot over three measures of choice from the given data
-GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA.unfiltered) {
+GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, title, source_data = DATA.unfiltered) {
   
   accessions <- source_data$accession %>% unique %>% sort
   
@@ -547,15 +567,33 @@ GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA
                                "#ba20fd", # Lavender
                                "#7600a8", # Purple
                                "#080f0f", # Black
-                               "#faffff"  # White
+                               "#666666"  # Gray
   ) #Fix these colors later
   
-  plot_ly(x = x_axis, y = y_axis, z = z_axis, color = as.factor(accessions), colors =  plotpalette_3D)
+  # x_axis <- source_data[x_axis]
+  # y_axis <- source_data[y_axis]
+  # z_axis <- source_data[z_axis]
   
+  x_title <- list(title = x_axis)
+  y_title <- list(title = y_axis)
+  z_title <- list(title = z_axis)
+  
+  accession_vector <- source_data$accession
+  
+  source_data %>%
+    plot_ly(x = ~get(x_axis), y = ~get(y_axis), z = ~get(z_axis), color = ~as.factor(accession), colors =  plotpalette_3D) %>%
+  layout(title = title, scene = list(xaxis=x_title,yaxis=y_title,zaxis=z_title))
 }
 
 
 
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
+# Code from this point on is not part of the software proper
+# Rather, it generates all graphs used or alluded to in the modeling paper that uses this code.
+# By running the below code with the above functions and libraries, 
+# A user should be able to obtain every plot and table used in the analysis and check any derived conclusions.
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
 
 # Data Integrity Check and Non-Heatmap Plots ----------------
@@ -567,6 +605,39 @@ while(TRUE) {
   default_file_decision <- readline("MESSAGE: Would you like to use the default dataset? y/N: ")
   
   if (default_file_decision == "y") {
+    
+    default_regeneration_decision <- readline("MESSAGE: Would you like to regenerate the default dataset from the provided base files? Y/n: ")
+    
+    if (default_regeneration_decision == "Y") {
+      cat("Regenerating default dataset:\n")
+      regen_file <- read.csv("data_files\\PARL0_06202022.csv") %>%
+        full_join(read.csv("data_files\\Pad_Area_Estimations.csv"), by = "completeID") %>%
+        full_join(read.csv("data_files\\dry_weight_proportion_raws.csv"), by = "accession") %>%
+        full_join(
+          read.csv("data_files\\water_content.csv") %>% 
+            mutate("completeID" = paste0(Plant_ID, "-", Replication, "-", Plant)) %>% 
+            select(c("DMC", "Water", "completeID")),
+          by = "completeID"
+          ) %>%
+        mutate(H_div_W = height / width,
+               FW_div_W = fresh_weight / width,
+               FW_div_D = fresh_weyight / diameter,
+               FW_div_H = fresh_weight / height,
+               FW_div_T = fresh_weight / thickness,
+               D_div_W = diameter / width) %>% 
+        mutate(Theo_Area = pi*height*width*0.25) %>%
+        mutate(PartRatio = ((height-width)/(height+width))^2) %>%
+        mutate(Pade_Peri = pi*(height+width)*(64-3*PartRatio^2)/(64-16*PartRatio)) %>%
+        mutate(Pade_Derived_Diam = Pade_Peri/pi) %>%
+        mutate(dry_weight = DMC*fresh_weight/100)
+      
+        regen_file %>% UTILITY.quickCSV("full_data.csv", "data_files")
+        
+    } else if (default_file_decision == "n") {
+      cat("Proceeding...\n")
+    } else {
+      print("Invalid Entry - Please Try Again")
+    }
     
     DATA.unfiltered <- read.csv("data_files\\full_data.csv")
     cat("Using default dataset \"full_data.csv\"\n")
@@ -609,6 +680,7 @@ UTILITY.columncheck(columns_for_analysis, DATA.unfiltered, TRUE)
 cat("\n")
 data_blacklist <- UTILITY.datapointFlagger()
 
+cat("Generating Filtered Data \n")
 DATA.filtered <- DATA.unfiltered %>%
   filter(!(completeID %in% data_blacklist))
 
@@ -627,6 +699,18 @@ for (accession in DATA.possible_accessions) {
 
 # Generate Violin Charts on Filtered and Unfiltered Data
 
+DATA.violinplot_measures <- scan("parameters\\violin_measures.txt", character())
+
+cat("Generating Violin Plots on Unfiltered and Filtered Data...\n")
+
+for (measure in DATA.violinplot_measures) {
+  print("measure")
+  GENERATOR.violin_plot(measure, "UNF", DATA.unfiltered)
+  GENERATOR.violin_plot(measure, "FIL", DATA.filtered)
+}
+
+
+    
 # Generate Tukey plots on Filtered and Unfiltered Data
 cat("Generating Tukey Plots and Hypergraphs...\n")
 
@@ -687,7 +771,7 @@ cat("Generating Intermeasure Heatmaps...\n")
 
 UTILITY.quickPNG((paste0("Intermeasure Adj-R2--UNF")), "image_output\\heatmaps\\intermeasure")
 GENERATOR.heatmap_table(DATA.intermeasure_models_and_abbrs, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\intermeasure\\Intermeasure Adj-R2.csv") %>%
+  UTILITY.quickCSV("Intermeasure Adj-R2.csv", "table_output\\intermeasure") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Intermeasure Adj. R^2", plot_type = "Absolute")
 dev.off()
 
@@ -719,28 +803,28 @@ cat("Generating Box Model Heatmaps...\n")
 #     Unfiltered Adj. R^2
 UTILITY.quickPNG("Box Model Adj-R2--UNF", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX_models_and_abbrs, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\BOX\\Box Model Adj-R2 - UNF.csv") %>%
+  UTILITY.quickCSV("Box Model Adj-R2 - UNF.csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Box Model Adj. R^2 - UNF", plot_type = "Absolute")
 dev.off()
 
 #     Unfiltered SBC
 UTILITY.quickPNG("Box Model SBC--UNF", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX_models_and_abbrs, "SBC", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\BOX\\Box Model SBC - UNF.csv") %>%
+  UTILITY.quickCSV("Box Model SBC - UNF.csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("SBC", "Box Model SBC - UNF", plot_type = "Relative to Model")
 dev.off()
 
 #     Filtered Adj. R^2
-UTILITY.quickPNG("Box Model SBC--FIL", "image_output\\heatmaps\\BOX")
+UTILITY.quickPNG("Box Model Adj-R2--FIL", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX_models_and_abbrs, "Adj. R^2", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\BOX\\Box Model Adj-R2 - FIL.csv") %>%
+  UTILITY.quickCSV("Box Model Adj-R2 - FIL.csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
 dev.off()
 
 #     Filtered SBC
-UTILITY.quickPNG("Fit-Ell Model SBC--FIL", "image_output\\heatmaps\\BOX")
+UTILITY.quickPNG("Box Model SBC--FIL", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX_models_and_abbrs, "SBC", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\BOX\\Box Model SBC - FIL.csv") %>%
+  UTILITY.quickCSV("Box Model SBC - FIL.csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
 dev.off()
 
@@ -750,28 +834,28 @@ cat("Generating Fitting and Ellipse Heatmaps...\n")
 #     Unfiltered Adj. R^2
 UTILITY.quickPNG("Fit-Ell Model Adj-R2--UNF", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FIT_ELL_models_and_abbrs, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF.csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model Adj-R2 - UNF.csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - UNF", plot_type = "Absolute")
 dev.off()
 
 #     Unfiltered SBC
 UTILITY.quickPNG("Fit-Ell Model SBC--UNF", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FIT_ELL_models_and_abbrs, "SBC", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF.csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model SBC - UNF.csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - UNF", plot_type = "Relative to Model")
 dev.off()
 
 #     Filtered Adj. R^2
 UTILITY.quickPNG("Fit-Ell Model Adj-R2--FIL", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FIT_ELL_models_and_abbrs, "Adj. R^2", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL.csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model Adj-R2 - FIL.csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
 dev.off()
 
 #     Filtered SBC
 UTILITY.quickPNG("Fit-Ell Model SBC--FIL", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FIT_ELL_models_and_abbrs, "SBC", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL.csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model SBC - FIL.csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
 dev.off()
 
@@ -790,29 +874,29 @@ DATA.FITTING_and_ELLIPSE.no_interactions <- DATA.FIT_ELL_models_and_abbrs %>%
 #     Unfiltered Adj. R^2
 UTILITY.quickPNG("Box Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.no_interactions, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\BOX\\Box Model Adj-R2 - UNF [NO Interactions].csv") %>%
+  UTILITY.quickCSV("Box Model Adj-R2 - UNF [NO Interactions].csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Box Model Adj. R^2 - UNF", plot_type = "Absolute")
 dev.off()
 
 #     Unfiltered SBC
 UTILITY.quickPNG("Box Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.no_interactions, "SBC", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\BOX\\Box Model SBC - UNF [NO Interactions].csv") %>%
+  UTILITY.quickCSV("Box Model SBC - UNF [NO Interactions].csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("SBC", "Box Model SBC - UNF", plot_type = "Relative to Model")
 dev.off()
 
 #     Filtered Adj. R^2
-UTILITY.quickPNG("Box Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\BOX")
+UTILITY.quickPNG("Box Model Adj-R2--FIL [NO Interactions]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.no_interactions, "Adj. R^2", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\BOX\\Box Model Adj-R2 - FIL [NO Interactions].csv") %>%
-  GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
+  UTILITY.quickCSV("Box Model Adj-R2 - FIL [NO Interactions].csv", "table_output\\BOX") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "Box Model Adj. R^2 - FIL", plot_type = "Absolute")
 dev.off()
 
 #     Filtered SBC
-UTILITY.quickPNG("Fit-Ell Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\BOX")
+UTILITY.quickPNG("Box Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.no_interactions, "SBC", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\BOX\\Box Model SBC - FIL [NO Interactions].csv") %>%
-  GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
+  UTILITY.quickCSV("Box Model SBC - FIL [NO Interactions].csv", "table_output\\BOX") %>%
+  GENERATOR.heatmap_plot("SBC", "Box Model SBC - FIL", plot_type = "Relative to Model")
 dev.off()
 
 #   Generate Fitting and Ellipse model Heatmaps, Filtered and Unfiltered, Adj. R^2 and SBC
@@ -821,28 +905,28 @@ cat("Generating Fitting and Ellipse Heatmaps with No Interactions...\n")
 #     Unfiltered Adj. R^2
 UTILITY.quickPNG("Fit-Ell Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF [NO Interactions].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model Adj-R2 - UNF [NO Interactions].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - UNF", plot_type = "Absolute")
 dev.off()
 
 #     Unfiltered SBC
 UTILITY.quickPNG("Fit-Ell Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF [NO Interactions].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model SBC - UNF [NO Interactions].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - UNF", plot_type = "Relative to Model")
 dev.off()
 
 #     Filtered Adj. R^2
 UTILITY.quickPNG("Fit-Ell Model Adj-R2--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL [NO Interactions].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model Adj-R2 - FIL [NO Interactions].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
 dev.off()
 
 #     Filtered SBC
 UTILITY.quickPNG("Fit-Ell Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [NO Interactions].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model SBC - FIL [NO Interactions].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
 dev.off()
 
@@ -860,29 +944,29 @@ DATA.FITTING_and_ELLIPSE.interactions <- DATA.FIT_ELL_models_and_abbrs %>%
 #     Unfiltered Adj. R^2
 UTILITY.quickPNG("Box Model Adj-R2--UNF [INTERACTIONS]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.interactions, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\BOX\\Box Model Adj-R2 - UNF [INTERACTIONS].csv") %>%
+  UTILITY.quickCSV("Box Model Adj-R2 - UNF [INTERACTIONS].csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Box Model Adj. R^2 - UNF", plot_type = "Absolute")
 dev.off()
 
 #     Unfiltered SBC
 UTILITY.quickPNG("Box Model SBC--UNF [INTERACTIONS]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.interactions, "SBC", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\BOX\\Box Model SBC - UNF [INTERACTIONS].csv") %>%
+  UTILITY.quickCSV("Box Model SBC - UNF [INTERACTIONS].csv", "table_output\\BOX") %>%
   GENERATOR.heatmap_plot("SBC", "Box Model SBC - UNF", plot_type = "Relative to Model")
 dev.off()
 
 #     Filtered Adj. R^2
-UTILITY.quickPNG("Box Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX")
+UTILITY.quickPNG("Box Model Adj-R2--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.interactions, "Adj. R^2", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\BOX\\Box Model Adj-R2 - FIL [INTERACTIONS].csv") %>%
-  GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
+  UTILITY.quickCSV("Box Model Adj-R2 - FIL [INTERACTIONS].csv", "table_output\\BOX") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "Box Model Adj. R^2 - FIL", plot_type = "Absolute")
 dev.off()
 
 #     Filtered SBC
-UTILITY.quickPNG("Fit-Ell Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX")
+UTILITY.quickPNG("Box Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX")
 GENERATOR.heatmap_table(DATA.BOX.interactions, "SBC", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\BOX\\Box Model SBC - FIL [INTERACTIONS].csv") %>%
-  GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
+  UTILITY.quickCSV("Box Model SBC - FIL [INTERACTIONS].csv", "table_output\\BOX") %>%
+  GENERATOR.heatmap_plot("SBC", "Box Model SBC - FIL", plot_type = "Relative to Model")
 dev.off()
 
 cat("Generating Fitting and Ellipse Heatmaps With Interactions...\n")
@@ -890,31 +974,137 @@ cat("Generating Fitting and Ellipse Heatmaps With Interactions...\n")
 #     Unfiltered Adj. R^2
 UTILITY.quickPNG("Fit-Ell Model Adj-R2--UNF [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.interactions, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF [INTERACTIONS].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model Adj-R2 - UNF [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - UNF", plot_type = "Absolute")
 dev.off()
 
 #     Unfiltered SBC
 UTILITY.quickPNG("Fit-Ell Model SBC--UNF [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.interactions, "SBC", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF [INTERACTIONS].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model SBC - UNF [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - UNF", plot_type = "Relative to Model")
 dev.off()
 
 #     Filtered Adj. R^2
 UTILITY.quickPNG("Fit-Ell Model Adj-R2--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.interactions, "Adj. R^2", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL [INTERACTIONS].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model Adj-R2 - FIL [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
 dev.off()
 
 #     Filtered SBC
 UTILITY.quickPNG("Fit-Ell Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE")
 GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.interactions, "SBC", source_data = DATA.filtered) %T>%
-  write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [INTERACTIONS].csv") %>%
+  UTILITY.quickCSV("Fit-Ell Model SBC - FIL [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE") %>%
   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
 dev.off()
 
+# Paper Comparison Heatmaps - REIS et. al. -------------
+
+#   Load the models to be compared for REIS et. al.'s paper
+
+DATA.REIS.fresh_weight <- read.csv("parameters\\heatmap_sources\\REIS_freshweight_models.csv")
+DATA.REIS.dry_weight <- read.csv("parameters\\heatmap_sources\\REIS_dryweight_models.csv")
+DATA.REIS.area <- read.csv("parameters\\heatmap_sources\\REIS_area_models.csv")
+
+#   Generate adj. R^2 heatmap tables for each comparison
+#     Generated on unfiltered data because REIS et. al. did not use any filtering
+
+#      FRESH WEIGHT
+UTILITY.quickPNG("REIS Fresh Weight Adj R^2 - UNF", "image_output\\heatmaps\\REIS")
+GENERATOR.heatmap_table(DATA.REIS.fresh_weight, "Adj. R^2") %>%
+  #   Adding a column with the R^2 value obtained in Reis et. al.'s analysis.
+  mutate((Reis_FW = 0.91)) %>%
+  setNames(c(DATA.REIS.fresh_weight$abbreviation, "Reis_FW")) %T>% 
+  UTILITY.quickCSV("REIS Fresh Weight Adj R^2 - UNF.csv", "table_output\\REIS") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "REIS Fresh Weight Adj. R^2 - UNF", plot_type = "Absolute")
+dev.off()
+  
+#      DRY WEIGHT
+UTILITY.quickPNG("REIS Dry Weight Adj R^2 - UNF", "image_output\\heatmaps\\REIS")
+GENERATOR.heatmap_table(DATA.REIS.dry_weight, "Adj. R^2") %>%
+  #   Adding a column with the R^2 value obtained in Reis et. al.'s analysis.
+  mutate((Reis_DW = 0.72)) %>% 
+  setNames(c(DATA.REIS.dry_weight$abbreviation, "Reis_DW")) %T>% 
+  UTILITY.quickCSV("REIS Dry Weight Adj R^2 - UNF.csv", "table_output\\REIS") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "REIS Dry Weight Adj. R^2 - UNF", plot_type = "Absolute")
+dev.off()
+
+#      AREA
+UTILITY.quickPNG("REIS Area Adj R^2 - UNF", "image_output\\heatmaps\\REIS")
+GENERATOR.heatmap_table(DATA.REIS.area, "Adj. R^2") %>%
+  #   Adding a column with the R^2 value obtained in Reis et. al.'s analysis.
+  mutate((Reis_Area = 0.91)) %>% 
+  setNames(c(DATA.REIS.area$abbreviation, "Reis_Area")) %T>% 
+  UTILITY.quickCSV("REIS Area Weight Adj R^2 - UNF.csv", "table_output\\REIS") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "REIS Area Weight Adj. R^2 - UNF", plot_type = "Absolute")
+dev.off()
+
+
+# Paper Comparison Heatmaps - LUCENA et. al. -----------
+
+DATA.LUCENA.powerlaw_area <- read.csv("parameters\\heatmap_sources\\LUCENA_power_area_models.csv")
+DATA.LUCENA.gammalaw_fresh_weight <- read.csv("parameters\\heatmap_sources\\LUCENA_gamma_freshweight_models.csv")
+
+#   Generate Power Law Area Adj. R^2 and SBC Heatmaps, over Filtered and Unfiltered Datasets
+
+#     Unfiltered Adj. R^2
+UTILITY.quickPNG("Power Law Model Area Adj-R2--UNF", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.powerlaw_area, "Adj. R^2", source_data = DATA.unfiltered) %T>%
+  UTILITY.quickCSV("Power Law Model Area Adj-R2 - UNF.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "Power Law Model Area Adj. R^2 - UNF", plot_type = "Absolute")
+dev.off()
+
+#     Unfiltered SBC
+UTILITY.quickPNG("Power Law Model Area SBC--UNF", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.powerlaw_area, "SBC", source_data = DATA.unfiltered) %T>%
+  UTILITY.quickCSV("Power Law Model Area SBC - UNF.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("SBC", "Power Law Model Area SBC - UNF", plot_type = "Relative to Model")
+dev.off()
+
+#     Filtered Adj. R^2
+UTILITY.quickPNG("Power Law Model Area Adj-R2--FIL", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.powerlaw_area, "Adj. R^2", source_data = DATA.filtered) %T>%
+  UTILITY.quickCSV("Power Law Model Area Adj-R2 - FIL.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "Power Law Model Area Adj. R^2 - FIL", plot_type = "Absolute")
+dev.off()
+
+#     Filtered SBC
+UTILITY.quickPNG("Power Law Model Area SBC--FIL", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.powerlaw_area, "SBC", source_data = DATA.filtered) %T>%
+  UTILITY.quickCSV("Power Law Model Area SBC - FIL.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("SBC", "Power Law Model Area SBC - FIL", plot_type = "Relative to Model")
+dev.off()
+
+#   Generate Gamma Law Fresh Weight Adj. R^2 and SBC Heatmaps, over Filtered and Unfiltered Datasets
+
+#     Unfiltered Adj. R^2
+UTILITY.quickPNG("Gamma - Fresh Weight Adj-R2--UNF", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.gammalaw_fresh_weight, "Adj. R^2", source_data = DATA.unfiltered) %T>%
+  UTILITY.quickCSV("Gamma - Fresh Weight Adj-R2 - UNF.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "Gamma - Fresh Weight Adj. R^2 - UNF", plot_type = "Absolute")
+dev.off()
+
+#     Unfiltered SBC
+UTILITY.quickPNG("Gamma - Fresh Weight SBC--UNF", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.gammalaw_fresh_weight, "SBC", source_data = DATA.unfiltered) %T>%
+  UTILITY.quickCSV("Gamma - Fresh Weight SBC - UNF.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("SBC", "Gamma - Fresh Weight SBC - UNF", plot_type = "Relative to Model")
+dev.off()
+
+#     Filtered Adj. R^2
+UTILITY.quickPNG("Gamma - Fresh Weight Adj-R2--FIL", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.gammalaw_fresh_weight, "Adj. R^2", source_data = DATA.filtered) %T>%
+  UTILITY.quickCSV("Gamma - Fresh Weight Adj-R2 - FIL.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("Adj. R^2", "Gamma - Fresh Weight Adj. R^2 - FIL", plot_type = "Absolute")
+dev.off()
+
+#     Filtered SBC
+UTILITY.quickPNG("Gamma - Fresh Weight SBC--FIL", "image_output\\heatmaps\\LUCENA")
+GENERATOR.heatmap_table(DATA.LUCENA.gammalaw_fresh_weight, "SBC", source_data = DATA.filtered) %T>%
+  UTILITY.quickCSV("Gamma - Fresh Weight SBC - FIL.csv", "table_output\\LUCENA") %>%
+  GENERATOR.heatmap_plot("SBC", "Gamma - Fresh Weight SBC - FIL", plot_type = "Relative to Model")
+dev.off()
 
 # Program end
 
@@ -925,127 +1115,12 @@ cat("Total Time Elapsed: ")
 cat(TOTALTIME)
 cat(" Minutes")
 
-# WIP Heatmap Automation -----------------
 
-# TODO: Get the iterable heatmap generation table working.
-# NOTE: You can automate out the 
-#     Adj. R^2 vs. SBC parameter (in terms of passing filenames and function values)
-#       With absolute/relative to model parameters as well
-#     Unfiltered vs. Filtered datasets (Filenames and function values)
-#     However, your table must contain:
-#       Heatmap display titles,
-#       Heatmap file titles,
-#       Parent folder names,
+# Additional Commands --------------
 
-# Create Master Dataset of heatmap tables to generate
+#   Generate 3D heatmaps
+# GENERATOR.3Dscatter_plot("height", "width", "thickness", "Physical Length Parameters")
+# GENERATOR.3Dscatter_plot("fresh_weight", "diameter", "thickness", "Fresh Weight vs. Eccentricity (Diameter) vs. Thickness")
+# GENERATOR.3Dscatter_plot("DMC", "Area", "fresh_weight", "Dry Matter with Weight and Area")
+# GENERATOR.3Dscatter_plot("fresh_weight", "dry_weight", "Area", "Fresh and Dry Weight vs. Area")
 
-# DATA.HEATMAP_MASTER <- tribble(
-#   ~heatmap_guide_df,             ~heatmap_display_title,  ~heatmap_file_title, ~parent_folder,
-#   DATA.BOX_models_and_abbrs,     "Box Model",             "Box Model",         "BOX",
-#   DATA.FIT_ELL_models_and_abbrs, "Fitting/Ellipse Model", "Fit-Ell Model",     "FIT-ELL",
-# )
-
-# Iteratively construct the tables and heatmap plots
-
-# for (row in nrow(DATA.HEATMAP_MASTER)) {
-#   for (measure in c("Adj. R^2", "SBC")) {
-#     for (dataset in list(DATA.unfiltered, DATA.filtered)) {
-#       for (setting in c("No Interactions", "Interactions", "Both")) {
-#         
-#         # Extract relevant parameters from DATA.HEATMAP_MASTER row
-#         heatmap_guide_df <- DATA.HEATMAP_MASTER[row,]$heatmap_guide_df[[1]]
-#         heatmap_display_title <- DATA.HEATMAP_MASTER[row,]$heatmap_display_title
-#         heatmap_file_title <- DATA.HEATMAP_MASTER[row,]$heatmap_file_title
-#         parent_folder <- DATA.HEATMAP_MASTER[row,]$parent_folder
-#         
-#         # Get a plotting-ready abbreviation for the dataset in use
-#         data_string <- ifelse(dataset == DATA.unfiltered, "UNF", "FIL")
-#         
-#         # Adjust the plot type depending on if it's Adj. R^2 or SBC
-#         target_plot_type <- switch(
-#           measure,
-#           "Adj. R^2" = "Absolute",
-#           "SBC" = "Relative to Model"
-#         )
-#         
-#         measure_file_safe <- switch(
-#           measure,
-#           "Adj. R^2" = "Adj R^2",
-#           "SBC" = "SBC"
-#         )
-#         
-#         print(target_plot_type)
-#         
-#         # Adjust heatmap_guide_df according to which models should be included
-#         grep_symbol <- switch(
-#           setting,
-#           "No Interactions" = "[*]",
-#           "Interactions" = "[+]",
-#           "Both" = "[ ]"
-#         )
-#         heatmap_guide_df %<>% filter(!(grepl(grep_symbol, model)))
-#         
-#         print(grep_symbol)
-#         
-#         # Make the PNG filepath
-#         png_filepath <- paste0(
-#           "image_output\\heatmaps",
-#           "\\",
-#           parent_folder
-#         )
-#         
-#         print(png_filepath)
-#         
-#         # Make the table filepath 
-#         table_filepath <- paste0(
-#           "table_output",
-#           "\\",
-#           parent_folder
-#         )
-#         
-#         print(table_filepath %>% head)
-#         print("heatmap file title")
-#         print(heatmap_file_title)
-#         print(measure_file_safe)
-#         print(data_string)
-#         print(setting)
-#         
-#         
-#         # Make the file title
-#         file_title <- paste0(
-#           heatmap_file_title,
-#           "--",
-#           measure_file_safe,
-#           "--",
-#           data_string,
-#           "--", 
-#           setting
-#         )
-#         
-#         print(file_title %>% head)
-#         
-#         # Make the figure title
-#         
-#         figure_title <- paste0(
-#           heatmap_display_title,
-#           "\n",
-#           measure_file_safe,
-#           "\n",
-#           data_string,
-#           "\n", 
-#           setting
-#         )
-#         
-#         print(figure_title %>% head)
-#         
-#         print("blob")
-#         
-#         UTILITY.quickPNG(file_title, png_filepath)
-#         GENERATOR.heatmap_table(heatmap_guide_df, measure, source_data = dataset) %T>%
-#           write.csv(paste0(table_filepath, "\\", file_title)) %>%
-#           GENERATOR.heatmap_plot(measure, figure_title, plot_type = target_plot_type)
-#         dev.off()
-#       }
-#     }
-#   }
-# }

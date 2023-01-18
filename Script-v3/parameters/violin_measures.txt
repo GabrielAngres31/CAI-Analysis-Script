@@ -1,0 +1,7 @@
+fresh_weight
+width
+height
+diameter
+thickness
+dry_weight
+Water

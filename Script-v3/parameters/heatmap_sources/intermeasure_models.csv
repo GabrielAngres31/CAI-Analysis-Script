@@ -9,3 +9,6 @@ thickness~width,T~W
 diameter~height,D~H
 thickness~height,T~H
 thickness~diameter,T~D
+fresh_weight~dry_weight,FW~DW
+thickness~dry_weight,T~DW
+diameter~dry_weight,D~DW
