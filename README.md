@@ -55,7 +55,7 @@ conda activate CAI
 ## Usage:
 ```
 conda activate CAI
-cd Script_v3
+cd Script-v3
 Rscript data_filtration_augmentation.R
 ```
 
