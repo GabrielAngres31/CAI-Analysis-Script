@@ -80,3 +80,10 @@ viridis
 RColorBrewer
 data.table
 ```
+
+## How to run test data?
+### spec for input file
+### Running time
+### Output explaination such as graph table and others.
+
+## How to run publication data
