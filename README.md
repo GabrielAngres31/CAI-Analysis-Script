@@ -34,7 +34,7 @@ Please make sure that you use `UTILITY.quickPNG()` and `dev.off()` for these fun
 
 Download the latest EDTA:
 
-`git clone https://github.com/GabrielAngres31/CAI-Analysis-Script.git`
+`git clone https://github.com/GabrielAngres31/CAI-Analysis-Script.git`  
 `cd CAI-Analysis-Script`
 
 Find the yml file in the folder and run:
