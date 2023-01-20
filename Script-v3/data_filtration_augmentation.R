@@ -611,64 +611,66 @@ GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, title, source_data
 STARTTIME <- Sys.time()
 
 # Default/Custom Dataset Input
-while(TRUE) {
-  default_file_decision <- readline("MESSAGE: Would you like to use the default dataset? y/N: ")
-  
-  if (default_file_decision == "y") {
-    
-    default_regeneration_decision <- readline("MESSAGE: Would you like to regenerate the default dataset from the provided base files? Y/n: ")
-    
-    if (default_regeneration_decision == "Y") {
-      cat("Regenerating default dataset:\n")
-      regen_file <- read.csv("data_files\\PARL0_06202022.csv") %>%
-        full_join(read.csv("data_files\\Pad_Area_Estimations.csv"), by = "completeID") %>%
-        full_join(read.csv("data_files\\dry_weight_proportion_raws.csv"), by = "accession") %>%
-        full_join(
-          read.csv("data_files\\water_content.csv") %>% 
-            mutate("completeID" = paste0(Plant_ID, "-", Replication, "-", Plant)) %>% 
-            select(c("DMC", "Water", "completeID")),
-          by = "completeID"
-          ) %>%
-        mutate(H_div_W = height / width,
-               FW_div_W = fresh_weight / width,
-               FW_div_D = fresh_weyight / diameter,
-               FW_div_H = fresh_weight / height,
-               FW_div_T = fresh_weight / thickness,
-               D_div_W = diameter / width) %>% 
-        mutate(Theo_Area = pi*height*width*0.25) %>%
-        mutate(PartRatio = ((height-width)/(height+width))^2) %>%
-        mutate(Pade_Peri = pi*(height+width)*(64-3*PartRatio^2)/(64-16*PartRatio)) %>%
-        mutate(Pade_Derived_Diam = Pade_Peri/pi) %>%
-        mutate(dry_weight = DMC*fresh_weight/100)
-      
-        regen_file %>% UTILITY.quickCSV("full_data.csv", "data_files")
-        
-    } else if (default_file_decision == "n") {
-      cat("Proceeding...\n")
-    } else {
-      print("Invalid Entry - Please Try Again")
-    }
-    
-    DATA.unfiltered <- read.csv("data_files\\full_data.csv")
-    cat("Using default dataset \"full_data.csv\"\n")
-    
-  } else if (default_file_decision == "N") {
-    
-    data_file_name <- readline("Please enter the name of your data file as shown in the \"data_files\" folder: ") 
-    DATA.unfiltered <- data_file_name %>%
-      paste0("data_files\\", .) %>% 
-      read.csv(file = .)
-    
-    cat(paste0("Using dataset ", data_file_name, "\n"))
-    
-  } else {
-    
-    print("Invalid Entry - Please Try Again")
-    
-    next
-  }
-  break
-}
+# while(TRUE) {
+#   default_file_decision <- readline("MESSAGE: Would you like to use the default dataset? y/N: ")
+#   
+#   if (default_file_decision == "y") {
+#     
+#     default_regeneration_decision <- readline("MESSAGE: Would you like to regenerate the default dataset from the provided base files? Y/n: ")
+#     
+#     if (default_regeneration_decision == "Y") {
+#       cat("Regenerating default dataset:\n")
+#       regen_file <- read.csv("data_files\\PARL0_06202022.csv") %>%
+#         full_join(read.csv("data_files\\Pad_Area_Estimations.csv"), by = "completeID") %>%
+#         full_join(read.csv("data_files\\dry_weight_proportion_raws.csv"), by = "accession") %>%
+#         full_join(
+#           read.csv("data_files\\water_content.csv") %>% 
+#             mutate("completeID" = paste0(Plant_ID, "-", Replication, "-", Plant)) %>% 
+#             select(c("DMC", "Water", "completeID")),
+#           by = "completeID"
+#           ) %>%
+#         mutate(H_div_W = height / width,
+#                FW_div_W = fresh_weight / width,
+#                FW_div_D = fresh_weyight / diameter,
+#                FW_div_H = fresh_weight / height,
+#                FW_div_T = fresh_weight / thickness,
+#                D_div_W = diameter / width) %>% 
+#         mutate(Theo_Area = pi*height*width*0.25) %>%
+#         mutate(PartRatio = ((height-width)/(height+width))^2) %>%
+#         mutate(Pade_Peri = pi*(height+width)*(64-3*PartRatio^2)/(64-16*PartRatio)) %>%
+#         mutate(Pade_Derived_Diam = Pade_Peri/pi) %>%
+#         mutate(dry_weight = DMC*fresh_weight/100)
+#       
+#         regen_file %>% UTILITY.quickCSV("full_data.csv", "data_files")
+#         
+#     } else if (default_file_decision == "n") {
+#       cat("Proceeding...\n")
+#     } else {
+#       print("Invalid Entry - Please Try Again")
+#     }
+#     
+#     DATA.unfiltered <- read.csv("data_files\\full_data.csv")
+#     cat("Using default dataset \"full_data.csv\"\n")
+#     
+#   } else if (default_file_decision == "N") {
+#     
+#     data_file_name <- readline("Please enter the name of your data file as shown in the \"data_files\" folder: ") 
+#     DATA.unfiltered <- data_file_name %>%
+#       paste0("data_files\\", .) %>% 
+#       read.csv(file = .)
+#     
+#     cat(paste0("Using dataset ", data_file_name, "\n"))
+#     
+#   } else {
+#     
+#     print("Invalid Entry - Please Try Again")
+#     
+#     next
+#   }
+#   break
+# }
+
+DATA.unfiltered <- read.csv("data_files\\full_data.csv")
 
 # Data Integrity Check
 
