@@ -81,6 +81,10 @@ RColorBrewer
 data.table
 ```
 
+# TODO
+## Make it with argument input
+
+
 ## How to run test data?
 ### spec for input file
 ### Running time
