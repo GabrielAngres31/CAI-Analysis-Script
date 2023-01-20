@@ -14,7 +14,7 @@ There are four subfolders:
 Lists of models to go into individual heatmaps get their own folder in this section.
 
 **data_files** contains all .csv files that you can refer to in your program.
-full_data is an aggregation of PARL0_06202022.csv, Pad_Area_Estimations.csv, and dry_weight_proportion_raws, joined and augmented with some additional measures as necessary for the analysis.
+full_data is an aggregation of `PARL0_06202022.csv`, `Pad_Area_Estimations.csv`, and `dry_weight_proportion_raws`, joined and augmented with some additional measures as necessary for the analysis.
 
 THE CODE THAT GENERATES THESE PARAMETERS, AND A FULL DESCRIPTION OF THE PARAMETERS, WILL BE INCLUDED IN THE NEXT UPDATE
 
@@ -55,12 +55,12 @@ conda activate CAI
 ## Usage:
 ```
 conda activate CAI
-cd Script_v3
+cd Script-v3
 Rscript data_filtration_augmentation.R
 ```
 
-
-IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES ARE INSTALLED BEFORE RUNNING THIS PROGRAM:
+## Required R packages.
+IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES WILL BE INSTALLED WITH `data_filtration_augmentation.R`
 ```
 dplyr
 tibble
