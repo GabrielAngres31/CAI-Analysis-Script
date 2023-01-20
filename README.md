@@ -59,8 +59,8 @@ cd Script_v3
 Rscript data_filtration_augmentation.R
 ```
 
-
-IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES ARE INSTALLED BEFORE RUNNING THIS PROGRAM:
+## Required R packages.
+IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES WILL BE INSTALLED WITH `data_filtration_augmentation.R`
 ```
 dplyr
 tibble
