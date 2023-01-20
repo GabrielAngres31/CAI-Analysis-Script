@@ -25,10 +25,10 @@ The main program file is **data_filtration_augmentation**. This file contains al
 You can run these functions individually from the console as long as all the parameters you pass are valid.
 
 NOTE: Except for the qqPlot function, none of the image-creating functions create any graphical devices OR turn them off.
-Please make sure that you use UTILITY.quickPNG() and dev.off() for these functions.
+Please make sure that you use `UTILITY.quickPNG()` and `dev.off()` for these functions.
 
 IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES ARE INSTALLED BEFORE RUNNING THIS PROGRAM:
-
+```
 dplyr
 tibble
 rsq
@@ -46,3 +46,4 @@ stringr
 viridis
 RColorBrewer
 data.table
+```
