@@ -27,6 +27,39 @@ You can run these functions individually from the console as long as all the par
 NOTE: Except for the qqPlot function, none of the image-creating functions create any graphical devices OR turn them off.
 Please make sure that you use `UTILITY.quickPNG()` and `dev.off()` for these functions.
 
+
+
+
+### Quick installation using conda (Linux64)
+
+Download the latest EDTA:
+
+`git clone https://github.com/GabrielAngres31/CAI-Analysis-Script.git`
+`cd CAI-Analysis-Script`
+
+Find the yml file in the folder and run:
+
+`conda env create -f CAI.yml`
+
+
+The default `conda env` name is `CAI` specified by the first line of the `CAI.yml` file. You may change that to different names. Once the conda environment is set up, you can use it to drive other versions of CAI. 
+
+First, it is strongly recommended to ceate a dedicated environment for CAI:
+
+```
+conda create -n CAI
+conda activate CAI
+```
+
+
+## Usage:
+```
+conda activate CAI
+cd Script_v3
+Rscript data_filtration_augmentation.R
+```
+
+
 IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES ARE INSTALLED BEFORE RUNNING THIS PROGRAM:
 ```
 dplyr
