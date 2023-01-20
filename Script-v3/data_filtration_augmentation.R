@@ -1,3 +1,9 @@
+# Set repo
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+
+# Package list
 REQUIRED_LIBRARIES <- c("dplyr", 
                         "tibble", 
                         "rsq", 
@@ -19,14 +25,18 @@ REQUIRED_LIBRARIES <- c("dplyr",
                         "ggplot2",
                         "knitr",
                         "rglwidget") 
-#
-GET_LIBRARIES <- REQUIRED_LIBRARIES[!(REQUIRED_LIBRARIES %in% installed.packages()[,"Package"])]
-#
-if(length(GET_LIBRARIES)) install.packages(GET_LIBRARIES)
-#
-#
-lapply(REQUIRED_LIBRARIES,function(x){library(x,character.only=TRUE)})
 
+
+# Install packages not yet installed
+installed_packages <- REQUIRED_LIBRARIES %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(REQUIRED_LIBRARIES[!installed_packages])
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+
+# Working directory
 setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\Script-v3")
 
 # Data Loading -----------------
