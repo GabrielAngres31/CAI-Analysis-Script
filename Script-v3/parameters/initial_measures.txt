@@ -3,4 +3,3 @@ width
 height
 diameter
 thickness
-dry_weight
