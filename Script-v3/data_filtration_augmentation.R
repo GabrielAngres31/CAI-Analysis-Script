@@ -1,3 +1,13 @@
+<<<<<<< Updated upstream
+=======
+# Set repo
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+library(devtools)
+# Package list
+install_version("vctrs", version = "0.5.2", repos = r["CRAN"])
+>>>>>>> Stashed changes
 REQUIRED_LIBRARIES <- c("dplyr", 
                         "tibble", 
                         "rsq", 
@@ -6,18 +16,16 @@ REQUIRED_LIBRARIES <- c("dplyr",
                         "hash",
                         "multcompView",
                         "HyperG",
-                        "plotly",
                         "htmlwidgets", 
                         "magrittr",
-                        "tidyr",
                         "multiApply",
                         "stringr",
                         "viridis",
                         "RColorBrewer",
                         "data.table",
                         "rgl",
-                        "ggplot2",
                         "knitr",
+<<<<<<< Updated upstream
                         "rglwidget") 
 #
 GET_LIBRARIES <- REQUIRED_LIBRARIES[!(REQUIRED_LIBRARIES %in% installed.packages()[,"Package"])]
@@ -27,6 +35,27 @@ if(length(GET_LIBRARIES)) install.packages(GET_LIBRARIES)
 #
 lapply(REQUIRED_LIBRARIES,function(x){library(x,character.only=TRUE)})
 
+=======
+                        "rglwidget",
+                        "tidyr",
+                        "plotly") 
+
+require(devtools)
+#install_version("ggplot2", version = "0.9.1", repos = r["CRAN"])
+
+
+
+# Install packages not yet installed
+installed_packages <- REQUIRED_LIBRARIES %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(REQUIRED_LIBRARIES[!installed_packages])
+}
+
+# Packages loading
+invisible(lapply(REQUIRED_LIBRARIES, library, character.only = TRUE))
+
+# Working directory
+>>>>>>> Stashed changes
 setwd("C:\\Users\\gjang\\Documents\\GitHub\\CAI-Analysis-Script\\Script-v3")
 
 # Data Loading -----------------
