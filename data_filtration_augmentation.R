@@ -576,7 +576,9 @@ GENERATOR.fitline_plot <- function(model_string, accession_choice, source_data =
   plot(intermeasure_plot_out)
 }
 
-# This function generates a 3D scatterplot over three measures of choice from the given data
+# This function generates a 3D scatterplot over three measures of choice from the given data.
+# Can be run independently of program execution.
+# To obtain the plots shown in the paper, use ("height", "width", "thickness") and ("thickness", "diameter", "fresh_weight") as parameters.
 GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA.unfiltered) {
   
   accessions <- source_data$accession %>% unique %>% sort
@@ -595,7 +597,7 @@ GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA
                       "#7600a8", # Purple
                       "#080f0f", # Black
                       "#faffff"  # White
-  ) #Fix these colors later
+  ) 
   
   plot_ly(x = x_axis, y = y_axis, z = z_axis, color = as.factor(accessions), colors =  plotpalette_3D)
   
