@@ -1,4 +1,0 @@
-﻿model,abbreviation
-fresh_weight~height*width*thickness,L*W*T
-fresh_weight~height*width*thickness*diameter,L*W*T*D
-fresh_weight~Theo_Area*thickness*Pade_Derived_Diam,Full Ellip.

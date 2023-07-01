@@ -1,6 +1,0 @@
-﻿model,abbreviation
-fresh_weight~height,H
-fresh_weight~width,W
-fresh_weight~thickness,T
-fresh_weight~I(height*width),HW
-fresh_weight~I(height*width)+thickness,HW+T

@@ -1,4 +1,0 @@
-﻿model,abbreviation
-log(Area)~log(height),A~H^n
-log(Area)~log(width),A~W^n
-log(Area)~log(height*width),A~(HW)^n
