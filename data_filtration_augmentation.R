@@ -607,12 +607,30 @@ GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA
 
 
 
+
+
+### DEFINITIONS AND CALLS BOUNDARY -------------------------
+# 
+
+# All code after this section and before the "Program End" section is custom code relating specifically to the CAI analysis.
+# This code is not guaranteed to work with other datasets that do not share the same initial measures.
+# To create a custom workflow with new data, use the functions above as a guide, and the function calls below as examples.
+###
+
+DATA_SELECTION <- commandArgs(defaults = list(datafile = "data_files\\full_data.csv"))[1]
+
 # Data Integrity Check and Non-Heatmap Plots ----------------
 
-STARTTIME <- Sys.time()
-
 # Default/Custom Dataset Input
+
+
+
 while(TRUE) {
+  
+  if (DATA_SELECTION == "data_files\\full_data.csv") {
+    break
+  }
+  
   default_file_decision <- readline("MESSAGE: Would you like to use the default dataset? y/N: ")
   
   if (default_file_decision == "y") {
@@ -637,6 +655,9 @@ while(TRUE) {
   }
   break
 }
+
+# Begin time checking
+STARTTIME <- Sys.time()
 
 # Data Integrity Check
 
@@ -862,34 +883,6 @@ UTILITY.heatmap_helper(
 UTILITY.heatmap_helper(
   "Fit-Ell Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [NO Interactions].csv", "Fit/Ell Model SBC - FIL", "Relative to Model")
 
-# #     Unfiltered Adj. R^2
-# UTILITY.quickPNG("Fit-Ell Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
-# GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-#   write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF [NO Interactions].csv") %>%
-#   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - UNF", plot_type = "Absolute")
-# dev.off()
-# 
-# #     Unfiltered SBC
-# UTILITY.quickPNG("Fit-Ell Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
-# GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", source_data = DATA.unfiltered) %T>%
-#   write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF [NO Interactions].csv") %>%
-#   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - UNF", plot_type = "Relative to Model")
-# dev.off()
-# 
-# #     Filtered Adj. R^2
-# UTILITY.quickPNG("Fit-Ell Model Adj-R2--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
-# GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", source_data = DATA.filtered) %T>%
-#   write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL [NO Interactions].csv") %>%
-#   GENERATOR.heatmap_plot("Adj. R^2", "Fit/Ell Model Adj. R^2 - FIL", plot_type = "Absolute")
-# dev.off()
-# 
-# #     Filtered SBC
-# UTILITY.quickPNG("Fit-Ell Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE")
-# GENERATOR.heatmap_table(DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", source_data = DATA.filtered) %T>%
-#   write.csv("table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [NO Interactions].csv") %>%
-#   GENERATOR.heatmap_plot("SBC", "Fit/Ell Model SBC - FIL", plot_type = "Relative to Model")
-# dev.off()
-
 
 # Main Models Heatmaps - BOX, FITTING, and ELLIPSE - INTERACTIONS ---------------------
 #   Generate Box model Heatmaps, Filtered and Unfiltered, Adj. R^2 and SBC
@@ -935,7 +928,7 @@ UTILITY.heatmap_helper(
 UTILITY.heatmap_helper(
   "Fit-Ell Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "SBC", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [INTERACTIONS].csv", "Fit/Ell Model SBC - FIL", "Relative to Model")
 
-# Program end
+# Program end ------------------------
 
 ENDTIME <- Sys.time()
 TOTALTIME <- ENDTIME - STARTTIME
