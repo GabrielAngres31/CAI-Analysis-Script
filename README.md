@@ -55,7 +55,7 @@ Rscript data_filtration_augmentation.R
 ```
 
 ## Required R packages.
-IMPORTANT: MAKE SURE THE FOLLOWING LIBRARIES WILL BE INSTALLED WITH `data_filtration_augmentation.R`
+NOTE: ENSURE THAT THE FOLLOWING LIBRARIES ARE INSTALLED, as they are necessary to all functions defined in `data_filtration_augmentation.R`
 ```
 dplyr
 tibble
