@@ -11,41 +11,19 @@ REQUIRED_LIBRARIES <- c("dplyr",
                         "tibble", 
                         "rsq", 
                         "car", 
-                        "Rcmdr",
-                        "hash",
-                        "multcompView",
-                        "HyperG",
+                        "Rcmdr", 
+                        "hash", 
+                        "multcompView", 
+                        "HyperG", 
+                        "plotly", 
                         "htmlwidgets", 
-                        "magrittr",
-                        "multiApply",
-                        "stringr",
-                        "viridis",
-                        "RColorBrewer",
-                        "data.table",
-                        "rgl",
-                        "knitr",
-                        "rglwidget") 
-
-REQUIRED_LIBRARIES <- c("dplyr", "tibble", "rsq", "car", "Rcmdr", "hash", "multcompView", "HyperG", "plotly", "htmlwidgets", "magrittr", "tidyr", "multiApply", "stringr", "viridis", "RColorBrewer", "data.table")
-
-# library("dplyr")
-# library("tibble")
-# library("rsq")
-# library("car")
-# library("Rcmdr")
-# library("hash")
-# library("multcompView")
-# library("HyperG")
-# library("plotly")
-# library("htmlwidgets")
-# library("magrittr")
-# library("tidyr")
-# library("multiApply")
-# library("stringr")
-# library("viridis")
-# library("pheatmap")
-# library("RColorBrewer")
-# library("data.table")
+                        "magrittr", 
+                        "tidyr", 
+                        "multiApply", 
+                        "stringr", 
+                        "viridis", 
+                        "RColorBrewer", 
+                        "data.table")
 
 require(devtools)
 #install_version("ggplot2", version = "0.9.1", repos = r["CRAN"])
@@ -75,7 +53,7 @@ if (!(basename(getwd()) == "CAI-Analysis-Script")) {
 
 
 # Checks that a file path exists, and creates it if it does not.
-UTILITY.folderpathcheck <- function(subfolder_string, silenced = FALSE) {
+UTILITY.folderpathcheck <- function(subfolder_string, silenced = TRUE) {
   # Get all parts of the file path to check
   path_components <- str_split(subfolder_string, "\\\\")[[1]]
   
@@ -108,6 +86,7 @@ UTILITY.quickPNG <- function(filenamestring, subfolder, dimensions = c(600, 4, 4
   png_width = dimensions[3]
   
   # Check that the filepath for the PNG exists, and make it if it doesn't
+  # If a file isn't saving properly, set ` silenced = FALSE ` in the UTILITY.folderpathcheck call
   UTILITY.folderpathcheck(subfolder, silenced = TRUE)
   filepath <- file.path(subfolder, filenamestring, fsep = "\\")
   
@@ -116,6 +95,13 @@ UTILITY.quickPNG <- function(filenamestring, subfolder, dimensions = c(600, 4, 4
       width = png_width * png_ppi, 
       height = png_height * png_ppi, 
       res = png_ppi)
+}
+
+# Creates a CSV at a given file path.
+# If a file isn't saving properly, set ` silenced = FALSE ` in the UTILITY.folderpathcheck call
+UTILITY.quickCSV <- function(csv_object, filenamestring, subfolder) {
+  UTILITY.folderpathcheck(subfolder, silenced = TRUE)
+  write.csv(csv_object, paste0(subfolder, "\\", filenamestring))
 }
 
 # Check if the dataframe contains the columns needed for the analysis
@@ -488,6 +474,23 @@ GENERATOR.heatmap_plot <- function(heatmap_table, model_statistic, heatmap_title
   
 }
 
+# This function calls the GENERATOR functions heatmap_table and heatmap_plot in sequence, allowing a table and its corresponding heatmap to be generated in the same call.
+# A reference parameter can be added in the form c(variable_name, value) to generate a single-value column in the heatmap as a reference.
+
+UTILITY.heatmap_helper <- function(png_title, png_folder, models_abbr_object, statistic, source_data, csv_title, csv_filepath, heatmap_title, heatmap_plottype, reference = NULL) {
+ 
+  UTILITY.quickPNG(png_title, png_folder)
+  
+  GENERATOR.heatmap_table(models_abbr_object, statistic, source_data) %>%
+    {if(!(is.null(reference))) mutate(., !! reference[1] := as.numeric(reference[2])) else .} %T>%
+    UTILITY.quickCSV(csv_title, csv_filepath) %>%
+    GENERATOR.heatmap_plot(statistic, heatmap_title, plot_type = heatmap_plottype)
+  
+  dev.off()
+}
+
+
+
 # This function generates a difference-in-means plot for a given measure over all accessions
 GENERATOR.tukeydiff_plot <- function(measure, source_data = DATA.unfiltered) {
   # Start with a linear model of the association of the accession with the measure under scrutiny
@@ -617,7 +620,7 @@ GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA
 # To create a custom workflow with new data, use the functions above as a guide, and the function calls below as examples.
 ###
 
-DATA_SELECTION <- commandArgs(defaults = list(datafile = "data_files\\full_data.csv"))[1]
+DATA_SELECTION <- commandArgs()[1]
 
 # Data Integrity Check and Non-Heatmap Plots ----------------
 
@@ -635,7 +638,52 @@ while(TRUE) {
   
   if (default_file_decision == "y") {
     
+    # Check to see if the full dataset for use has been generated from a prior run of the program.
+    # In this case, this is configured for the CAI dataset.
+    # If not, it is generated from existing, complementary datasets.
+    # For your own analyses, place your own code in here.
+    # If one or more datasets are missing, or if there are no datasets, the program will stop.
+    
+    if (!file.exists("full_data.csv")) {
+      
+      columns_for_analysis <- read.csv("parameters/required_columns_raw_in.txt") %>%
+        unlist() %>%
+        as.vector()
+      
+      read.csv("data_files\\raw_data.csv") %T>% 
+        
+        UTILITY.columncheck(columns_for_analysis, ., TRUE) %>%
+        
+        mutate(H_div_W = height/width,
+               FW_div_W = fresh_weight/width,
+               FW_div_D = fresh_weight/diameter,
+               FW_div_H = fresh_weight/height,
+               FW_div_T = fresh_weight/thickness,
+               D_div_W = diameter/width,
+               Theo_Area = pi*height*width*0.25,
+               PartRatio = ((height-width)/(height+width))^2,
+               Pade_Peri = pi*(height+width)*(64-3*PartRatio^2)/(64-16*PartRatio),
+               Pade_Derived_Diam = Pade_Peri/pi) %>%
+        
+        merge(read.csv("data_files\\pad_area_estimations.csv"), by = "completeID") %>%
+        
+        merge(read.csv("data_files\\water_content_data.csv"  ), by = "completeID") %>%
+        
+        mutate(dry_weight = fresh_weight*dry_proportion,
+               water_weight = fresh_weight*water_proportion) %>%
+        
+        write.csv("data_files\\full_data.csv")
+    }
+    
+    # Load initial program dataset ("Full" dataset) with column check for data integrity
+    
     DATA.unfiltered <- read.csv("data_files\\full_data.csv")
+    
+    read.csv("parameters/required_columns_full_data.txt") %>%
+      unlist() %>%
+      as.vector() %>%
+      UTILITY.columncheck(DATA.unfiltered, TRUE)
+    
     cat("Using default dataset \"full_data.csv\"\n")
     
   } else if (default_file_decision == "N") {
@@ -660,11 +708,6 @@ while(TRUE) {
 STARTTIME <- Sys.time()
 
 # Data Integrity Check
-
-columns_for_analysis <- read.csv("parameters/required_columns.txt") %>%
-  unlist() %>%
-  as.vector()
-cat("MESSAGE: Column check: ")
 
 UTILITY.columncheck(columns_for_analysis, DATA.unfiltered, TRUE)
 
@@ -698,7 +741,7 @@ for (accession in DATA.possible_accessions) {
 # Generate Violin Charts on Filtered and Unfiltered Data
 DATA.initial_measures <- scan("parameters\\initial_measures.txt", character())
 
-cat("Generating Violin Plots on Unfiltered Data...\n")
+cat("Generating Violin Plots on Unfiltered/Filtered Data...\n")
 for (measure in DATA.initial_measures) {
   GENERATOR.violin_plot(DATA.unfiltered, measure, "UNF")
   GENERATOR.violin_plot(DATA.filtered, measure, "FIL")
@@ -765,7 +808,7 @@ cat("Generating Intermeasure Heatmaps...\n")
 
 UTILITY.quickPNG((paste0("Intermeasure Adj-R2--UNF")), "image_output\\heatmaps\\intermeasure")
 GENERATOR.heatmap_table(DATA.intermeasure_models_and_abbrs, "Adj. R^2", source_data = DATA.unfiltered) %T>%
-  write.csv("table_output\\intermeasure\\Intermeasure Adj-R2.csv") %>%
+  UTILITY.quickCSV("Intermeasure Adj-R2.csv", "table_output\\intermeasure") %>%
   GENERATOR.heatmap_plot("Adj. R^2", "Intermeasure Adj. R^2", plot_type = "Absolute")
 dev.off()
 
@@ -790,51 +833,44 @@ DATA.FITTING_and_ELLIPSE.interactions <- DATA.FIT_ELL_models_and_abbrs %>%
 
 
 #     Generate the actual heatmaps
-UTILITY.heatmap_helper <- function(png_title, png_folder, models_abbr_object, statistic, source_data, csv_filepath, heatmap_title, heatmap_plottype) {
-  UTILITY.quickPNG(png_title, png_folder)
-  GENERATOR.heatmap_table(models_abbr_object, statistic, source_data) %T>%
-    write.csv(csv_filepath) %>%
-    GENERATOR.heatmap_plot(statistic, heatmap_title, plot_type = heatmap_plottype)
-  dev.off()
-}
 
 #   Generate Box model Heatmaps, Filtered and Unfiltered, Adj. R^2 and SBC
 cat("Generating Box Model Heatmaps...\n")
 
 #     Unfiltered Adj. R^2
 UTILITY.heatmap_helper(
-  "Box Model Adj-R2--UNF", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "Adj. R^2", DATA.unfiltered, "table_output\\BOX\\Box Model Adj-R2 - UNF.csv", "Box Model Adj. R^2 - UNF", "Absolute")
+  "Box Model Adj-R2--UNF", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "Adj. R^2", DATA.unfiltered, "Box Model Adj-R2 - UNF.csv", "table_output\\BOX", "Box Model Adj. R^2 - UNF", "Absolute")
 
 #     Unfiltered SBC
 UTILITY.heatmap_helper(
-  "Box Model SBC--UNF", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "SBC", DATA.unfiltered, "table_output\\BOX\\Box Model SBC - UNF.csv", "Box Model SBC - UNF", "Relative to Model")
+  "Box Model SBC--UNF", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "SBC", DATA.unfiltered, "Box Model SBC - UNF.csv", "table_output\\BOX", "Box Model SBC - UNF", "Relative to Model")
 
 #     Filtered Adj. R^2
 UTILITY.heatmap_helper(
-  "Box Model Adj-R2--FIL", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "Adj. R^2", DATA.filtered, "table_output\\BOX\\Box Model Adj-R2 - FIL.csv", "Box Model Adj. R^2 - FIL", "Absolute")
+  "Box Model Adj-R2--FIL", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "Adj. R^2", DATA.filtered, "Box Model Adj-R2 - FIL.csv", "table_output\\BOX", "Box Model Adj. R^2 - FIL", "Absolute")
 
 #     Filtered SBC
 UTILITY.heatmap_helper(
-  "Box Model SBC--FIL", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "SBC", DATA.filtered, "table_output\\BOX\\Box Model SBC - FIL.csv", "Box Model SBC - FIL", "Relative to Model")
+  "Box Model SBC--FIL", "image_output\\heatmaps\\BOX", DATA.BOX_models_and_abbrs, "SBC", DATA.filtered, "Box Model SBC - FIL.csv", "table_output\\BOX", "Box Model SBC - FIL", "Relative to Model")
 
 #   Generate Fitting and Ellipse model Heatmaps, Filtered and Unfiltered, Adj. R^2 and SBC
 cat("Generating Fitting and Ellipse Heatmaps...\n")
 
 #     Unfiltered Adj. R^2
 UTILITY.heatmap_helper(
-  "Fit-Ell Model Adj-R2--UNF", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "Adj. R^2", DATA.unfiltered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF.csv", "Fit/Ell Model Adj. R^2 - UNF", "Absolute")
+  "Fit-Ell Model Adj-R2--UNF", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "Adj. R^2", DATA.unfiltered, "Fit-Ell Model Adj-R2 - UNF.csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model Adj. R^2 - UNF", "Absolute")
 
 #     Unfiltered SBC
 UTILITY.heatmap_helper(
-  "Fit-Ell Model SBC--UNF", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "SBC", DATA.unfiltered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF.csv", "Fit/Ell Model SBC - UNF", "Relative to Model")
+  "Fit-Ell Model SBC--UNF", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "SBC", DATA.unfiltered, "Fit-Ell Model SBC - UNF.csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model SBC - UNF", "Relative to Model")
 
 #     Filtered Adj. R^2
 UTILITY.heatmap_helper(
-  "Fit-Ell Model Adj-R2--FIL", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "Adj. R^2", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL.csv", "Fit/Ell Model Adj. R^2 - FIL", "Absolute")
+  "Fit-Ell Model Adj-R2--FIL", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "Adj. R^2", DATA.filtered, "Fit-Ell Model Adj-R2 - FIL.csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model Adj. R^2 - FIL", "Absolute")
 
 #     Filtered SBC
 UTILITY.heatmap_helper(
-  "Fit-Ell Model SBC--FIL", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "SBC", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL.csv", "Fit/Ell Model SBC - FIL", "Relative to Model")
+  "Fit-Ell Model SBC--FIL", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FIT_ELL_models_and_abbrs, "SBC", DATA.filtered, "Fit-Ell Model SBC - FIL.csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model SBC - FIL", "Relative to Model")
 
 # Main Models Heatmaps - BOX, FITTING, and ELLIPSE - NO INTERACTIONS ---------------------
 
@@ -850,38 +886,38 @@ DATA.FITTING_and_ELLIPSE.no_interactions <- DATA.FIT_ELL_models_and_abbrs %>%
 
 #     Unfiltered Adj. R^2
 UTILITY.heatmap_helper(
-  "Box Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "Adj. R^2", DATA.unfiltered, "table_output\\BOX\\Box Model Adj-R2 - UNF [NO Interactions].csv", "Box Model Adj. R^2 - UNF", "Absolute")
+  "Box Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "Adj. R^2", DATA.unfiltered, "Box Model Adj-R2 - UNF [NO Interactions].csv", "table_output\\BOX", "Box Model Adj. R^2 - UNF", "Absolute")
 
 #     Unfiltered SBC
 UTILITY.heatmap_helper(
-  "Box Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "SBC", DATA.unfiltered, "table_output\\BOX\\Box Model SBC - UNF [NO Interactions].csv", "Box Model SBC - UNF", "Relative to Model")
+  "Box Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "SBC", DATA.unfiltered, "Box Model SBC - UNF [NO Interactions].csv", "table_output\\BOX", "Box Model SBC - UNF", "Relative to Model")
 
 #     Filtered Adj. R^2
 UTILITY.heatmap_helper(
-  "Box Model Adj.R^2--FIL [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "Adj. R^2", DATA.filtered, "table_output\\BOX\\Box Model Adj-R2 - FIL [NO Interactions].csv", "Box Model Adj. R^2 - FIL", "Absolute")
+  "Box Model Adj.R^2--FIL [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "Adj. R^2", DATA.filtered, "Box Model Adj-R2 - FIL [NO Interactions].csv", "table_output\\BOX", "Box Model Adj. R^2 - FIL", "Absolute")
 
 #     Filtered SBC
 UTILITY.heatmap_helper(
-  "Box Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "SBC", DATA.filtered, "table_output\\BOX\\Box Model SBC - FIL [NO Interactions].csv", "Box Model SBC - FIL", "Relative to Model")
+  "Box Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\BOX", DATA.BOX.no_interactions, "SBC", DATA.filtered, "Box Model SBC - FIL [NO Interactions].csv", "table_output\\BOX", "Box Model SBC - FIL", "Relative to Model")
 
 #   Generate Fitting and Ellipse model Heatmaps, Filtered and Unfiltered, Adj. R^2 and SBC
 cat("Generating Fitting and Ellipse Heatmaps with No Interactions...\n")
 
 #     Unfiltered Adj. R^2
 UTILITY.heatmap_helper(
-  "Fit-Ell Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", DATA.unfiltered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF [NO Interactions].csv", "Fit/Ell Model Adj. R^2 - UNF", "Absolute")
+  "Fit-Ell Model Adj-R2--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", DATA.unfiltered, "Fit-Ell Model Adj-R2 - UNF [NO Interactions].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model Adj. R^2 - UNF", "Absolute")
 
 #     Unfiltered SBC
 UTILITY.heatmap_helper(
-  "Fit-Ell Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", DATA.unfiltered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF [NO Interactions].csv", "Fit/Ell Model SBC - UNF", "Relative to Model")
+  "Fit-Ell Model SBC--UNF [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", DATA.unfiltered, "Fit-Ell Model SBC - UNF [NO Interactions].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model SBC - UNF", "Relative to Model")
 
 #     Filtered Adj. R^2
 UTILITY.heatmap_helper(
-  "Fit-Ell Model Adj-R2--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL [NO Interactions].csv", "Fit/Ell Model Adj. R^2 - FIL", "Absolute")
+  "Fit-Ell Model Adj-R2--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "Adj. R^2", DATA.filtered, "Fit-Ell Model Adj-R2 - FIL [NO Interactions].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model Adj. R^2 - FIL", "Absolute")
 
 #     Filtered SBC
 UTILITY.heatmap_helper(
-  "Fit-Ell Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [NO Interactions].csv", "Fit/Ell Model SBC - FIL", "Relative to Model")
+  "Fit-Ell Model SBC--FIL [NO Interactions]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.no_interactions, "SBC", DATA.filtered, "Fit-Ell Model SBC - FIL [NO Interactions].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model SBC - FIL", "Relative to Model")
 
 
 # Main Models Heatmaps - BOX, FITTING, and ELLIPSE - INTERACTIONS ---------------------
@@ -896,37 +932,92 @@ DATA.FITTING_and_ELLIPSE.interactions <- DATA.FIT_ELL_models_and_abbrs %>%
 
 #     Unfiltered Adj. R^2
 UTILITY.heatmap_helper(
-  "Box Model Adj-R2--UNF [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "Adj. R^2", DATA.unfiltered, "table_output\\BOX\\Box Model Adj-R2 - UNF [INTERACTIONS].csv", "Box Model Adj. R^2 - UNF", "Absolute")
+  "Box Model Adj-R2--UNF [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "Adj. R^2", DATA.unfiltered, "Box Model Adj-R2 - UNF [INTERACTIONS].csv", "table_output\\BOX", "Box Model Adj. R^2 - UNF", "Absolute")
 
 #     Unfiltered SBC
 UTILITY.heatmap_helper(
-  "Box Model SBC--UNF [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "SBC", DATA.unfiltered, "table_output\\BOX\\Box Model SBC - UNF [INTERACTIONS].csv", "Box Model SBC - UNF", "Relative to Model")
+  "Box Model SBC--UNF [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "SBC", DATA.unfiltered, "Box Model SBC - UNF [INTERACTIONS].csv", "table_output\\BOX", "Box Model SBC - UNF", "Relative to Model")
 
 #     Filtered Adj. R^2
 UTILITY.heatmap_helper(
-  "Box Model Adj-R2--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "Adj. R^2", DATA.filtered, "table_output\\BOX\\Box Model Adj-R2 - FIL [INTERACTIONS].csv", "Box Model Adj. R^2 - FIL", "Absolute")
+  "Box Model Adj-R2--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "Adj. R^2", DATA.filtered, "Box Model Adj-R2 - FIL [INTERACTIONS].csv", "table_output\\BOX", "Box Model Adj. R^2 - FIL", "Absolute")
 
 #     Filtered SBC
 UTILITY.heatmap_helper(
-  "Box Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "SBC", DATA.filtered, "table_output\\BOX\\Box Model SBC - FIL [INTERACTIONS].csv", "Box Model SBC - FIL", "Relative to Model")
+  "Box Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\BOX", DATA.BOX.interactions, "SBC", DATA.filtered, "Box Model SBC - FIL [INTERACTIONS].csv", "table_output\\BOX", "Box Model SBC - FIL", "Relative to Model")
 
 cat("Generating Fitting and Ellipse Heatmaps With Interactions...\n")
 
 #     Unfiltered Adj. R^2
 UTILITY.heatmap_helper(
-  "Fit-Ell Model Adj-R2--UNF [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "Adj. R^2", DATA.unfiltered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - UNF [INTERACTIONS].csv", "Fit/Ell Model Adj. R^2 - UNF", "Absolute")
+  "Fit-Ell Model Adj-R2--UNF [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "Adj. R^2", DATA.unfiltered, "Fit-Ell Model Adj-R2 - UNF [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model Adj. R^2 - UNF", "Absolute")
 
 #     Unfiltered SBC
 UTILITY.heatmap_helper(
-  "Fit-Ell Model SBC--UNF [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "SBC", DATA.unfiltered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - UNF [INTERACTIONS].csv", "Fit/Ell Model SBC - UNF", "Relative to Model")
+  "Fit-Ell Model SBC--UNF [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "SBC", DATA.unfiltered, "Fit-Ell Model SBC - UNF [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model SBC - UNF", "Relative to Model")
 
 #     Filtered Adj. R^2
 UTILITY.heatmap_helper(
-  "Fit-Ell Model Adj-R2--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "Adj. R^2", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model Adj-R2 - FIL [INTERACTIONS].csv", "Fit/Ell Model Adj. R^2 - FIL", "Absolute")
+  "Fit-Ell Model Adj-R2--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "Adj. R^2", DATA.filtered, "Fit-Ell Model Adj-R2 - FIL [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model Adj. R^2 - FIL", "Absolute")
 
 #     Filtered SBC
 UTILITY.heatmap_helper(
-  "Fit-Ell Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "SBC", DATA.filtered, "table_output\\FITTING and ELLIPSE\\Fit-Ell Model SBC - FIL [INTERACTIONS].csv", "Fit/Ell Model SBC - FIL", "Relative to Model")
+  "Fit-Ell Model SBC--FIL [INTERACTIONS]", "image_output\\heatmaps\\FITTING and ELLIPSE", DATA.FITTING_and_ELLIPSE.interactions, "SBC", DATA.filtered, "Fit-Ell Model SBC - FIL [INTERACTIONS].csv", "table_output\\FITTING and ELLIPSE", "Fit/Ell Model SBC - FIL", "Relative to Model")
+
+
+# Prior Work - REIS et. al. -----------------
+
+DATA.REIS_models_and_abbrs.AREA <- read.csv("parameters\\heatmap_sources\\REIS_area_models.csv")
+
+#     Unfiltered AREA Adj. R^2
+UTILITY.heatmap_helper(
+  "Reis et al AREA Adj-R2--UNF", "image_output\\heatmaps\\REIS", DATA.REIS_models_and_abbrs.AREA, "Adj. R^2", DATA.unfiltered, "REIS et al Comparisons - AREA - UNF.csv", "table_output\\REIS", "REIS et al AREA Comparison - UNF", "Absolute", c("Reis Area", 0.91))
+
+#     Filtered AREA Adj. R^2
+UTILITY.heatmap_helper(
+  "Reis et al AREA Adj-R2--FIL", "image_output\\heatmaps\\REIS", DATA.REIS_models_and_abbrs.AREA, "Adj. R^2", DATA.filtered, "REIS et al Comparisons - AREA - FIL.csv", "table_output\\REIS", "REIS et al AREA Comparison - FIL", "Absolute", c("Reis Area", 0.91))
+
+
+DATA.REIS_models_and_abbrs.DRYWEIGHT <- read.csv("parameters\\heatmap_sources\\REIS_dryweight_models.csv")
+
+#     Unfiltered DRY WEIGHT Adj. R^2
+UTILITY.heatmap_helper(
+  "Reis et al DW Adj-R2--UNF", "image_output\\heatmaps\\REIS", DATA.REIS_models_and_abbrs.DRYWEIGHT, "Adj. R^2", DATA.unfiltered, "REIS et al Comparisons - DW - UNF.csv", "table_output\\REIS", "REIS et al DW Comparison - UNF", "Absolute", c("Reis Dry Weight", 0.72))
+
+#     Filtered DRY WEIGHT Adj. R^2
+UTILITY.heatmap_helper(
+  "Reis et al DW Adj-R2--FIL", "image_output\\heatmaps\\REIS", DATA.REIS_models_and_abbrs.DRYWEIGHT, "Adj. R^2", DATA.filtered, "REIS et al Comparisons - DW - FIL.csv", "table_output\\REIS", "REIS et al DW Comparison - FIL", "Absolute", c("Reis Dry Weight", 0.72))
+
+# Prior Work - LUCENA et. al. ---------------
+
+# POWER Law Comparisons
+
+DATA.LUCENA_models_and_abbrs.POWER <- read.csv("parameters\\heatmap_sources\\LUCENA_power_law.csv")
+
+# Adj. R^@
+UTILITY.heatmap_helper("Lucena et. al. POWER Adj-R2--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "Adj. R^2", DATA.unfiltered,   "LUCENA et al Comparisons - POWER Adj R^2 - UNF.csv", "table_output\\LUCENA", "LUCENA et al POWER Adj R^2 Comparison - UNF", "Absolute")
+
+UTILITY.heatmap_helper("Lucena et. al. POWER Adj-R2--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "Adj. R^2", DATA.filtered,   "LUCENA et al Comparisons - POWER Adj R^2 - FIL.csv", "table_output\\LUCENA", "LUCENA et al POWER Adj R^2 Comparison - FIL", "Absolute")
+
+# SBC
+UTILITY.heatmap_helper("Lucena et. al. POWER SBC--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "SBC", DATA.unfiltered, "LUCENA et al Comparisons - POWER SBC - UNF.csv", "table_output\\LUCENA", "LUCENA et al POWER SBC Comparison - UNF", "Relative to Model")
+
+UTILITY.heatmap_helper("Lucena et. al. POWER SBC--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "SBC", DATA.filtered,   "LUCENA et al Comparisons - POWER SBC - FIL.csv", "table_output\\LUCENA", "LUCENA et al POWER SBC Comparison - FIL", "Relative to Model")
+
+
+# GAMMA Model Comparisons
+DATA.LUCENA_models_and_abbrs.GAMMA <- read.csv("parameters\\heatmap_sources\\LUCENA_gamma_law.csv")
+
+# Adj. R^2
+UTILITY.heatmap_helper("Lucena et. al. GAMMA Adj-R2--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "Adj. R^2", DATA.unfiltered,   "LUCENA et al Comparisons - GAMMA Adj R^2 - UNF.csv", "table_output\\LUCENA", "LUCENA et al GAMMA Adj R^2 Comparison - UNF", "Absolute")
+
+UTILITY.heatmap_helper("Lucena et. al. GAMMA Adj-R2--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "Adj. R^2", DATA.filtered,   "LUCENA et al Comparisons - GAMMA Adj R^2 - FIL.csv", "table_output\\LUCENA", "LUCENA et al GAMMA Adj R^2 Comparison - FIL", "Absolute")
+
+# SBC
+UTILITY.heatmap_helper("Lucena et. al. GAMMA SBC--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "SBC", DATA.unfiltered, "LUCENA et al Comparisons - GAMMA SBC - UNF.csv", "table_output\\LUCENA", "LUCENA et al GAMMA SBC Comparison - UNF", "Relative to Model")
+
+UTILITY.heatmap_helper("Lucena et. al. GAMMA SBC--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "SBC", DATA.filtered,   "LUCENA et al Comparisons - GAMMA SBC - FIL.csv", "table_output\\LUCENA", "LUCENA et al GAMMA SBC Comparison - FIL", "Relative to Model")
+
 
 # Program end ------------------------
 
