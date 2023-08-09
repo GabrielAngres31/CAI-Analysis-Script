@@ -9,4 +9,6 @@ Theo_Area,pi*height*width*0.25
 PartRatio,((height-width)/(height+width))^2
 Pade_Peri,pi*(height+width)*(64-3*PartRatio^2)/(64-16*PartRatio)
 Pade_Derived_Diam,Pade_Peri/pi
-dry_weight,proportion*fresh_weight
+dry_weight,dry_proportion*fresh_weight
+water_proportion,1-dry_proportion
+water_weight,water_proportion*fresh_weight

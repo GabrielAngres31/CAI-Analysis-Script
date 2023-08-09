@@ -19,4 +19,5 @@ Pade_Peri
 Pade_Derived_Diam
 dry_weight
 dry_proportion
+water_weight
 water_proportion
