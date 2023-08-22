@@ -1,4 +1,7 @@
 # CAI-Analysis-Script
+
+[![DOI](https://zenodo.org/badge/336920035.svg)](https://zenodo.org/badge/latestdoi/336920035)
+
 The location where files relating to the CAI script and analysis are kept.
 
 There are four subfolders needed for the program to run: **parameters**, **data_files**, **image_output**, and **table_output**
