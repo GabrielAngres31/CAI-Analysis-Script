@@ -24,7 +24,8 @@ REQUIRED_LIBRARIES <- c("dplyr",
                         "viridis", 
                         "RColorBrewer", 
                         "data.table",
-                        "here")
+                        "here",
+                        "minpack.lm")
 
 require(devtools)
 #install_version("ggplot2", version = "0.9.1", repos = r["CRAN"])
@@ -436,8 +437,9 @@ GENERATOR.heatmap_plot <- function(heatmap_table, model_statistic, heatmap_title
   if (plot_type == "Absolute") {
     
     if(min(heatmap_table[-1]) < 0) {
+      cat("[")
       cat(heatmap_title)
-      cat("is lower than 0\n")
+      cat("]'s minimum value is lower than 0\n")
       
     }
     
@@ -450,6 +452,7 @@ GENERATOR.heatmap_plot <- function(heatmap_table, model_statistic, heatmap_title
       geom_tile() +
       xlab("Models") +
       ylab("Accession") +
+      theme(plot.title = element_text(size = 10)) +
       ggtitle(heatmap_title) +
       theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
       # scale_color_gradientn(colors = color_vector,
@@ -476,6 +479,7 @@ GENERATOR.heatmap_plot <- function(heatmap_table, model_statistic, heatmap_title
       geom_tile() +
       xlab("Models") +
       ylab("Accession") +
+      theme(plot.title = element_text(size = 10)) +
       ggtitle(heatmap_title) +
       theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
       scale_fill_viridis(256, direction = -1, begin = 0, end = 1, option = "A") +
@@ -567,6 +571,7 @@ UTILITY.heatmap_delta <- function(table_1_path,
       geom_tile() +
       xlab("Models") +
       ylab("Accession") +
+      theme(plot.title = element_text(size = 10)) +
       ggtitle(heatmap_title) +
       theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
       # scale_color_gradientn(colors = color_vector,
@@ -594,6 +599,7 @@ UTILITY.heatmap_delta <- function(table_1_path,
       geom_tile() +
       xlab("Models") +
       ylab("Accession") +
+      theme(plot.title = element_text(size = 10)) +
       ggtitle(heatmap_title) +
       theme(axis.text.x = element_text(angle = 60, vjust = 0, hjust=0)) +
       scale_fill_viridis(256, direction = -1, begin = 0, end = 1, option = "A") +
@@ -696,6 +702,7 @@ GENERATOR.fitline_plot <- function(model_string, accession_choice, source_data =
 # This function generates a 3D scatterplot over three measures of choice from the given data.
 # Can be run independently of program execution.
 # To obtain the plots shown in the paper, use ("height", "width", "thickness") and ("thickness", "diameter", "fresh_weight") as parameters.
+# TODO: THIS ISN'T DISPLAYING A GRAPH
 GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA.unfiltered) {
   
   accessions <- source_data$accession %>% unique %>% sort
@@ -715,9 +722,13 @@ GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA
                       "#080f0f", # Black
                       "#faffff"  # White
   ) 
-  
-  plot_ly(x = x_axis, y = y_axis, z = z_axis, color = as.factor(accessions), colors =  plotpalette_3D)
-  
+  source_data %>%
+  plot_ly(x = x_axis, y = y_axis, z = z_axis, color = as.factor(accessions), colors =  plotpalette_3D) %>%
+    add_markers(marker = list(size = 10, opacity = 1)) %>%
+    layout(scene = list(xaxis = list(title = "X-axis"),
+                        yaxis = list(title = "Y-axis"),
+                        zaxis = list(title = "Z-axis")),
+           title = "3D Scatter Plot")
 }
 
 
@@ -760,7 +771,7 @@ while(TRUE) {
     
     if (!file.exists("full_data.csv")) {
       
-      columns_for_analysis <- read.csv("parameters/required_columns_raw_in.txt") %>%
+      columns_for_analysis <- read.csv("parameters\\required_columns_raw_in.txt") %>%
         unlist() %>%
         as.vector()
       
@@ -1380,31 +1391,127 @@ UTILITY.heatmap_helper(
 cat("Generating LUCENA et. al. Comparison Heatmaps...\n")
 
 DATA.LUCENA_models_and_abbrs.POWER <- read.csv("parameters\\heatmap_sources\\LUCENA_power_law.csv")
-
 # Adj. R^2
 UTILITY.heatmap_helper("Lucena et. al. POWER Adj-R2--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "Adj. R^2", DATA.unfiltered,   "LUCENA et al Comparisons - POWER Adj R^2 - UNF.csv", "table_output\\LUCENA", "LUCENA et al POWER Adj R^2 Comparison - UNF", "Absolute")
-
 UTILITY.heatmap_helper("Lucena et. al. POWER Adj-R2--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "Adj. R^2", DATA.filtered,   "LUCENA et al Comparisons - POWER Adj R^2 - FIL.csv", "table_output\\LUCENA", "LUCENA et al POWER Adj R^2 Comparison - FIL", "Absolute")
-
 # SBC
 UTILITY.heatmap_helper("Lucena et. al. POWER SBC--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "SBC", DATA.unfiltered, "LUCENA et al Comparisons - POWER SBC - UNF.csv", "table_output\\LUCENA", "LUCENA et al POWER SBC Comparison - UNF", "Relative to Model")
-
 UTILITY.heatmap_helper("Lucena et. al. POWER SBC--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.POWER, "SBC", DATA.filtered,   "LUCENA et al Comparisons - POWER SBC - FIL.csv", "table_output\\LUCENA", "LUCENA et al POWER SBC Comparison - FIL", "Relative to Model")
 
 
 # GAMMA Model Comparisons
 DATA.LUCENA_models_and_abbrs.GAMMA <- read.csv("parameters\\heatmap_sources\\LUCENA_gamma_law.csv")
-
 # Adj. R^2
 UTILITY.heatmap_helper("Lucena et. al. GAMMA Adj-R2--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "Adj. R^2", DATA.unfiltered,   "LUCENA et al Comparisons - GAMMA Adj R^2 - UNF.csv", "table_output\\LUCENA", "LUCENA et al GAMMA Adj R^2 Comparison - UNF", "Absolute")
-
 UTILITY.heatmap_helper("Lucena et. al. GAMMA Adj-R2--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "Adj. R^2", DATA.filtered,   "LUCENA et al Comparisons - GAMMA Adj R^2 - FIL.csv", "table_output\\LUCENA", "LUCENA et al GAMMA Adj R^2 Comparison - FIL", "Absolute")
-
 # SBC
 UTILITY.heatmap_helper("Lucena et. al. GAMMA SBC--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "SBC", DATA.unfiltered, "LUCENA et al Comparisons - GAMMA SBC - UNF.csv", "table_output\\LUCENA", "LUCENA et al GAMMA SBC Comparison - UNF", "Relative to Model")
-
 UTILITY.heatmap_helper("Lucena et. al. GAMMA SBC--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "SBC", DATA.filtered,   "LUCENA et al Comparisons - GAMMA SBC - FIL.csv", "table_output\\LUCENA", "LUCENA et al GAMMA SBC Comparison - FIL", "Relative to Model")
 
+# Prior Work - COLOGGERO & PARRERA --------------- TODO
+
+cat("Generating Cologgero & Parrera Comparison Heatmaps...\n")
+
+DATA.COLOGGERO_PARRERA_models_and_abbrs <- read.csv("parameters\\heatmap_sources\\caloggero_parrera_drybyrect.csv")
+
+# Adj. R^2
+UTILITY.heatmap_helper("Cologgero & Parrera Adj-R2--UNF", "image_output\\heatmaps\\COLOGGERO_PARRERA", DATA.COLOGGERO_PARRERA_models_and_abbrs, "Adj. R^2", DATA.unfiltered,   "Cologgero & Parrera Comparisons - Adj R^2 - UNF.csv", "table_output\\COLOGGERO_PARRERA", "COLOGGERO & PARRERA Adj R^2 Comparison - UNF", "Absolute")
+UTILITY.heatmap_helper("Cologgero & Parrera Adj-R2--FIL", "image_output\\heatmaps\\COLOGGERO_PARRERA", DATA.COLOGGERO_PARRERA_models_and_abbrs, "Adj. R^2", DATA.filtered,   "Cologgero & Parrera Comparisons - Adj R^2 - FIL.csv", "table_output\\COLOGGERO_PARRERA", "COLOGGERO & PARRERA Adj R^2 Comparison - FIL", "Absolute")
+# SBC
+UTILITY.heatmap_helper("Cologgero & Parrera SBC--UNF", "image_output\\heatmaps\\COLOGGERO_PARRERA", DATA.COLOGGERO_PARRERA_models_and_abbrs, "SBC", DATA.unfiltered,   "Cologgero & Parrera Comparisons - SBC - UNF.csv", "table_output\\COLOGGERO_PARRERA", "COLOGGERO & PARRERA SBC Comparison - UNF", "Relative to Model")
+UTILITY.heatmap_helper("Cologgero & Parrera SBC--FIL", "image_output\\heatmaps\\COLOGGERO_PARRERA", DATA.COLOGGERO_PARRERA_models_and_abbrs, "SBC", DATA.filtered,   "Cologgero & Parrera Comparisons - SBC - FIL.csv", "table_output\\COLOGGERO_PARRERA", "COLOGGERO & PARRERA SBC Comparison - FIL", "Relative to Model")
+
+# Prior Work - DE CORTAZAR & NOBEL --------------- TODO
+
+cat("Generating de Cortazar & Nobel Comparison Heatmaps...\n")
+
+DATA.DE_CORTAZAR_NOBEL_models_and_abbrs <- read.csv("parameters\\heatmap_sources\\de_cortazar_nobel_ofarea.csv")
+
+# Adj. R^2
+UTILITY.heatmap_helper("de Cortazar & Nobel Adj-R2--UNF", "image_output\\heatmaps\\DE_CORTAZAR_NOBEL", DATA.DE_CORTAZAR_NOBEL_models_and_abbrs, "Adj. R^2", DATA.unfiltered,   "de Cortazar and Nobel Comparisons - Adj R^2 - UNF.csv", "table_output\\DE_CORTAZAR_NOBEL", "DE CORTAZAR & NOBEL Adj R^2 Comparison - UNF", "Absolute")
+UTILITY.heatmap_helper("de Cortazar & Nobel Adj-R2--FIL", "image_output\\heatmaps\\DE_CORTAZAR_NOBEL", DATA.DE_CORTAZAR_NOBEL_models_and_abbrs, "Adj. R^2", DATA.filtered,   "de Cortazar and Nobel Comparisons - Adj R^2 - FIL.csv", "table_output\\DE_CORTAZAR_NOBEL", "DE CORTAZAR & NOBEL Adj R^2 Comparison - FIL", "Absolute")
+# SBC
+UTILITY.heatmap_helper("de Cortazar & Nobel SBC--UNF", "image_output\\heatmaps\\DE_CORTAZAR_NOBEL", DATA.DE_CORTAZAR_NOBEL_models_and_abbrs, "SBC", DATA.unfiltered,   "de Cortazar and Nobel Comparisons - SBC - UNF.csv", "table_output\\DE_CORTAZAR_NOBEL", "DE CORTAZAR & NOBEL SBC Comparison - UNF", "Relative to Model")
+UTILITY.heatmap_helper("de Cortazar & Nobel SBC--FIL", "image_output\\heatmaps\\DE_CORTAZAR_NOBEL", DATA.DE_CORTAZAR_NOBEL_models_and_abbrs, "SBC", DATA.filtered,   "de Cortazar and Nobel Comparisons - SBC - FIL.csv", "table_output\\DE_CORTAZAR_NOBEL", "DE CORTAZAR & NOBEL SBC Comparison - FIL", "Relative to Model")
+
+
+# Prior Work - LUO & NOBEL ---------------
+cat("Generating Luo & Nobel Comparison Heatmaps...\n")
+
+DATA.LUO_NOBEL_models_and_abbrs <- read.csv("parameters\\heatmap_sources\\luo_nobel_drybyvol.csv")
+
+# Adj. R^2
+UTILITY.heatmap_helper("Luo & Nobel Adj-R2--UNF", "image_output\\heatmaps\\LUO_NOBEL", DATA.LUO_NOBEL_models_and_abbrs, "Adj. R^2", DATA.unfiltered,   "Luo and Nobel Comparisons - Adj R^2 - UNF.csv", "table_output\\LUO_NOBEL", "LUO & NOBEL Adj R^2 Comparison - UNF", "Absolute")
+UTILITY.heatmap_helper("Luo & Nobel Adj-R2--FIL", "image_output\\heatmaps\\LUO_NOBEL", DATA.LUO_NOBEL_models_and_abbrs, "Adj. R^2", DATA.filtered,   "Luo and Nobel Comparisons - Adj R^2 - FIL.csv", "table_output\\LUO_NOBEL", "LUO & NOBEL Adj R^2 Comparison - FIL", "Absolute")
+# SBC
+UTILITY.heatmap_helper("Luo & Nobel SBC--UNF", "image_output\\heatmaps\\LUO_NOBEL", DATA.LUO_NOBEL_models_and_abbrs, "SBC", DATA.unfiltered,   "Luo and Nobel Comparisons - SBC - UNF.csv", "table_output\\LUO_NOBEL", "LUO & NOBEL SBC Comparison - UNF", "Relative to Model")
+UTILITY.heatmap_helper("Luo & Nobel SBC--FIL", "image_output\\heatmaps\\LUO_NOBEL", DATA.LUO_NOBEL_models_and_abbrs, "SBC", DATA.filtered,   "Luo and Nobel Comparisons - SBC - FIL.csv", "table_output\\LUO_NOBEL", "LUO & NOBEL SBC Comparison - FIL", "Relative to Model")
+
+
+# Prior Work - INGLESE et. al. ---------------
+cat("Generating Inglese et. al. Comparison Heatmaps...\n")
+
+DATA.INGLESE_models_and_abbrs <- read.csv("parameters\\heatmap_sources\\inglese_AbyD2L2.csv")
+
+# Adj. R^2
+UTILITY.heatmap_helper("Inglese et. al. Adj-R2--UNF", "image_output\\heatmaps\\INGLESE", DATA.INGLESE_models_and_abbrs, "Adj. R^2", DATA.unfiltered,   "Inglese et al Comparisons - Adj R^2 - UNF.csv", "table_output\\INGLESE", "INGLESE et al Adj R^2 Comparison - UNF", "Absolute")
+UTILITY.heatmap_helper("Inglese et. al. Adj-R2--FIL", "image_output\\heatmaps\\INGLESE", DATA.INGLESE_models_and_abbrs, "Adj. R^2", DATA.filtered,   "Inglese et al Comparisons - Adj R^2 - FIL.csv", "table_output\\INGLESE", "INGLESE et al Adj R^2 Comparison - FIL", "Absolute")
+# SBC
+UTILITY.heatmap_helper("Inglese et. al. SBC--UNF", "image_output\\heatmaps\\INGLESE", DATA.INGLESE_models_and_abbrs, "SBC", DATA.unfiltered,   "Inglese et al Comparisons - SBC - UNF.csv", "table_output\\INGLESE", "INGLESE et al SBC Comparison - UNF", "Relative to Model")
+UTILITY.heatmap_helper("Inglese et. al. SBC--FIL", "image_output\\heatmaps\\INGLESE", DATA.INGLESE_models_and_abbrs, "SBC", DATA.filtered,   "Inglese et al Comparisons - SBC - FIL.csv", "table_output\\INGLESE", "INGLESE et al SBC Comparison - FIL", "Relative to Model")
+
+# Prior Work - Silva et. al. ---------------
+
+
+
+
+UTILITY.nonlinear_model_SILVA_bolton <- function(source_data) {
+  
+  filtered_data=source_data%>%filter(Area != "NA")
+  # print(nrow(filtered_data))
+  
+  SILVA_hw <- function(data) {
+    return(nls(data=data, "Area~a*(1-exp(b*height*width))/-b", start=list(a=100,b=0.001)))
+  }
+  SILVA_peri <- function(data) {
+    return(nls(data=data, "Area~a*(1-exp(b*Pade_Peri))/-b", start=list(a=100,b=0.001)))
+  }
+  
+  SILVA_hw_model_ALL = SILVA_hw(filtered_data)
+  SILVA_peri_model_ALL = SILVA_peri(filtered_data)
+  
+  approx_r2_nonlinear <- function(data, model) {
+    pred_values = predict(model)
+    depvar = as.character(formula(model))[2]
+    actu_values = data[[depvar]]
+    r2 = 1-(sum((actu_values - pred_values)^2)/sum((actu_values - mean(actu_values))^2))
+    print(r2)
+    return(r2)
+  }
+  
+  SILVA_hw_df <- data.frame(
+    accession = "All",
+    R2 = approx_r2_nonlinear(filtered_data, SILVA_hw_model_ALL),
+    SBC = BIC(SILVA_hw_model_ALL)
+  )
+  SILVA_peri_df <- data.frame(
+    accession = "All",
+    R2 = approx_r2_nonlinear(filtered_data, SILVA_peri_model_ALL),
+    SBC = BIC(SILVA_peri_model_ALL)
+  )
+  
+  for (acc in DATA.possible_accessions) {
+    print(acc)
+    #print(approx_r2_nonlinear(filtered_data, SILVA_hw_model))
+    data_acc = filtered_data %>% filter(accession == acc)
+    SILVA_hw_df   %<>% add_row(accession = as.character(acc), R2 = approx_r2_nonlinear(data_acc, SILVA_hw(data_acc)),   SBC = BIC(SILVA_hw(data_acc)))
+    SILVA_peri_df %<>% add_row(accession = as.character(acc), R2 = approx_r2_nonlinear(data_acc, SILVA_peri(data_acc)), SBC = BIC(SILVA_peri(data_acc)))
+  }
+  print(SILVA_hw_df)
+  print(SILVA_peri_df)
+}
+
+UTILITY.nonlinear_model_SILVA_bolton(DATA.unfiltered)
 
 # Program end ------------------------
 

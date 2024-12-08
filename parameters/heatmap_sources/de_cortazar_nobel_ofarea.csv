@@ -1,0 +1,4 @@
+model,abbreviation
+dry_weight~Area,A
+dry_weight~I(Area*Area),A^2
+dry_weight~I(Area*Area+Area),A^2+A

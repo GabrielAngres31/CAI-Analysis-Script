@@ -1,0 +1,6 @@
+model,abbreviation
+Area~width,W
+Area~height,H
+Area~I(width*width),W^2
+Area~I(height*height),H^2
+Area~I(width*width+height*height),W^2+H^2

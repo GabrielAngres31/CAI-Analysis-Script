@@ -1,0 +1,5 @@
+model,abbreviation
+dry_weight~height,H
+dry_weight~width,W
+dry_weight~height*width,H*W
+dry_weight~I(height*width),I(H*W)

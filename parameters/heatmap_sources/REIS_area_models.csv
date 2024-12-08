@@ -2,3 +2,4 @@ model,abbreviation
 Area~height*width,A~HW
 Area~Theo_Area,A~A_th
 Area~Theo_Area*diameter,A~A_th*D
+Area~I(Theo_Area*diameter),A~I(A_th*D)
