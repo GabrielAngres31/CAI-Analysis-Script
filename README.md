@@ -82,8 +82,8 @@ data.table
 
 ## Generating publication data and graphs
 To run the program with the publication data, run the entire program in R. When this dialogue appears:
-`MESSAGE: Would you like to use the default dataset? y/N: `
-Type `y` and press `Enter`.
+`MESSAGE: Would you like to use the default dataset? (y)/N: `
+Type `y` and press `Enter` - or simply hit `Enter`.
 **NOTE:** You should only use this option with an unmodified installation of this repository.
 
 ### Specs for arbitrary input files
@@ -91,7 +91,7 @@ Input file specs are flexible. Whatever fields you wish to analyze (and pass as 
 
 **CAUTION**: The main program loop is _not_ meant for any dataset other than the CAI dataset provided. The functions definitions and calls in that main program should be considered as examples for use, and should not be simply substituted and run. If you want to do analysis on your own data, you should remove all function calls and substitute your own as needed. If the program throws an error message when you run it on a custom dataset, please check that all **parameter** files have been written and contain the correct contents for your analyis.
 
-If you have any questions about the program operation not answered by the documentation, you can contact me at gangres@nevada.unr.edu.
+If you have any questions about the program operation not answered by the documentation, you can contact me at gaangres@ucsd.edu.
 
 ## Running from the command line through BASH
 **NOTE:** These instructions assume that you have already configured a program flow suitable to your analysis.
