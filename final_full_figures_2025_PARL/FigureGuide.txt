@@ -1,0 +1,6 @@
+Figure 1: Figure_01_ImagesOpuntiaAccessions.jpg
+Figure 2: Figure_02_Model-Illustration.png
+Figure 3: Figure_03_Violinplot.png
+Figure 4: Figure_04_Intermeasure.png
+Figure 5: Figure_05_Heatmaps.png
+Figure 6: Figure_06_Heatmaps.png

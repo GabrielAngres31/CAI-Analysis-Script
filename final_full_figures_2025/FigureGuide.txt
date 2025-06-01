@@ -1,0 +1,7 @@
+Figure 1: (Not Included) [Representative pads image]
+Figure 2: DerivingDiameter.png
+Figure 3: Models.png
+Figure 4: Violinplot.png
+Figure 5: Intermeasure.png
+Figure 6: BoxModel_FIL.png
+Figure 7: FitEllModel_FIL.png

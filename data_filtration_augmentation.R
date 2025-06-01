@@ -28,6 +28,7 @@ REQUIRED_LIBRARIES <- c("dplyr",
                         "minpack.lm")
 
 require(devtools)
+
 #install_version("ggplot2", version = "0.9.1", repos = r["CRAN"])
 
 # Install packages not yet installed
@@ -243,10 +244,11 @@ GENERATOR.modelFinder <- function(source_data, model_string, accession_choice = 
   # Check for a valid accession parameter
   accessions_possible <- source_data$accession %>% unique %>% sort
   
-  # Check if the accessions passed are valid and stop the execution if they aren't
+  # Check if the accessions passed are valid and stop the execution if they aren't.
   UTILITY.accessioncheck(accession_choice)
   
-  #TODO: Check that model is correct, and stop it if it isn't!
+  #NOTE: This function does not check whether the model is valid.
+  #NOTE: If you experience a problem with this function, check the model string.
   
   # Ensure that "accession" is a vector with one element
   accession_choice <- c(accession_choice)
@@ -339,8 +341,8 @@ GENERATOR.qqGen <- function(measure, target_accession, source_data = DATA.unfilt
   qq_plot_name <- paste0(measure, "--", target_accession, "_QQ-Plot")
   # Create a PNG at the appropriate folder using UTILITY.quickPNG
   UTILITY.quickPNG(qq_plot_name, "image_output\\qq_plots")
-  # Generate the qqPlot
-  qqPlot(target_data[[measure]], ylab = measure, main = paste0("QQPlot of ", measure, " for accession ", target_accession), envelope = 0.95)
+  # Generate the qqPlot - CHANGEFLAG
+  qqPlot(target_data[[measure]], ylab = measure, main = paste0("Q/Q - ", measure, " for PARL ", target_accession), envelope = 0.95)
   # Turn off the plotting device
   dev.off()
 }
@@ -359,8 +361,8 @@ GENERATOR.violin_plot <- function(plot_data, measure, tag) {
     geom_boxplot(width = 0.2) +
     xlab(measure) +
     ylab("Accession") + 
-    ggtitle(paste0("Distribution of ", measure, " by Accession")) + 
-    theme(legend.position = "none")
+    ggtitle(paste0("Dist. of ", measure, " by Accession")) + 
+    theme(legend.position = "none", plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "inches") )
   
   # Plot the plot
   plot(violin_plot)
@@ -372,7 +374,7 @@ GENERATOR.violin_plot <- function(plot_data, measure, tag) {
 # This function take a source data file and a dataframe containing models and their abbreviations for display, 
 #   and returns a heatmap with accessions for the rows and abbreviated model names for the columns
 
-#TODO: Find out why passing default parameter results in unexpected behavior
+
 GENERATOR.heatmap_table <- function(models_and_abbreviations_df, model_statistic, source_data) {
   
   # Verify that the input models dataframe only contains the model and abbreviation columns that we need
@@ -387,7 +389,7 @@ GENERATOR.heatmap_table <- function(models_and_abbreviations_df, model_statistic
   }
   
   # Get valid accession
-  accessions_possible <- source_data$accession %>% unique %>% sort %>% c("All", .)
+  accessions_possible <- source_data$accession %>% unique %>% sort(decreasing=FALSE) %>% c("All", .)
   
   # Get models and abbreviations as separate vectors
   models <- models_and_abbreviations_df$model
@@ -415,8 +417,11 @@ GENERATOR.heatmap_table <- function(models_and_abbreviations_df, model_statistic
     }
   }
   
-  # Account for strange bug where empty columns are added
+  # Account for strange behavior where empty columns are added
   heatmap_table %<>% select(all_of(abbreviations))
+  
+  # Re-order rows
+  heatmap_table <- heatmap_table[order(rownames(heatmap_table), decreasing=TRUE),]
   
   return(heatmap_table)
 }
@@ -443,7 +448,6 @@ GENERATOR.heatmap_plot <- function(heatmap_table, model_statistic, heatmap_title
       
     }
     
-    #color_vector <- c( mako(length(heatmap_table[-1])), rep("grey80", times = length(heatmap_table[-1])) )
     return_plot <- heatmap_table %>% 
       rownames_to_column("accession") %>%
       pivot_longer(cols = -1, names_to = "abbr_model", values_to = "statistic") %>%
@@ -659,7 +663,7 @@ GENERATOR.tukeygroup_plot <- function(measure, source_data = DATA.unfiltered) {
     hypergraph_from_edgelist() %>%
     # Plot hypergraph
     plot()
-  text(0, 1.05, pos = 4, cex = 1.2, paste0("Hypergraph of ", measure))
+  text(-0.8, -2.25, pos = 4, cex = 1.2, paste0("Hypergraph of ", measure))
 }
 
 # This function generates a scatterplot with a fitted line from a desired model and over a given accession
@@ -702,34 +706,39 @@ GENERATOR.fitline_plot <- function(model_string, accession_choice, source_data =
 # This function generates a 3D scatterplot over three measures of choice from the given data.
 # Can be run independently of program execution.
 # To obtain the plots shown in the paper, use ("height", "width", "thickness") and ("thickness", "diameter", "fresh_weight") as parameters.
-# TODO: THIS ISN'T DISPLAYING A GRAPH
-GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA.unfiltered) {
-  
-  accessions <- source_data$accession %>% unique %>% sort
-  
-  plotpalette_3D <- c("#009a00", # Green
-                      "#ef1101", # Bright Red
-                      "#5c0300", # Burgundy
-                      "#fd9206", # Pale Orange
-                      "#a45d00", # Light Brown
-                      "#fef636", # Pale Yellow
-                      "#8f8a00", # Dirty Yellow
-                      "#0006a4", # Dark Blue
-                      "#0efd0e", # Bright Green
-                      "#010afb", # Bright Blue
-                      "#ba20fd", # Lavender
-                      "#7600a8", # Purple
-                      "#080f0f", # Black
-                      "#faffff"  # White
-  ) 
-  source_data %>%
-  plot_ly(x = x_axis, y = y_axis, z = z_axis, color = as.factor(accessions), colors =  plotpalette_3D) %>%
-    add_markers(marker = list(size = 10, opacity = 1)) %>%
-    layout(scene = list(xaxis = list(title = "X-axis"),
-                        yaxis = list(title = "Y-axis"),
-                        zaxis = list(title = "Z-axis")),
-           title = "3D Scatter Plot")
-}
+# NOTE: This function has been disabled, as it does not currently work as intended for unknown reasons. 
+# NOTE: To generate graphs, please run plot.ly commands manually with your data.
+
+# GENERATOR.3Dscatter_plot <- function (x_axis, y_axis, z_axis, source_data = DATA.unfiltered) {
+#   
+#   accessions <- source_data$accession %>% unique %>% sort
+#   
+#   plotpalette_3D <- c("#009a00", # Green
+#                       "#ef1101", # Bright Red
+#                       "#5c0300", # Burgundy
+#                       "#fd9206", # Pale Orange
+#                       "#a45d00", # Light Brown
+#                       "#fef636", # Pale Yellow
+#                       "#8f8a00", # Dirty Yellow
+#                       "#0006a4", # Dark Blue
+#                       "#0efd0e", # Bright Green
+#                       "#010afb", # Bright Blue
+#                       "#ba20fd", # Lavender
+#                       "#7600a8", # Purple
+#                       "#080f0f", # Black
+#                       "#faffff"  # White
+#   ) 
+#   source_data %>%
+#   plot_ly(., x = .[x_axis], y = .[y_axis], z = .[z_axis], color = as.factor(accessions), colors =  plotpalette_3D) # %>%
+#     # add_scatter3d(mode = "markers",
+#     #               marker = list(size = 10, opacity = 1)) %>%
+#     # add_markers(marker = list(size = 10)) # %>%
+#     # layout(scene = list(xaxis = list(range = c(0, 100)),
+#     #                     yaxis = list(title = "Y-axis", range = c(0, 100)),
+#     #                     zaxis = list(title = "Z-axis", range = c(0, 100)))
+#     # )
+#            # title = "3D Scatter Plot")
+# }
 
 
 
@@ -759,9 +768,9 @@ while(TRUE) {
     break
   }
   
-  default_file_decision <- readline("MESSAGE: Would you like to use the default dataset? y/N: ")
+  default_file_decision <- readline("MESSAGE: Would you like to use the default dataset? (y)/N: ")
   
-  if (default_file_decision == "y") {
+  if (default_file_decision %in% c("y", "")) {
     
     # Check to see if the full dataset for use has been generated from a prior run of the program.
     # In this case, this is configured for the CAI dataset.
@@ -802,14 +811,14 @@ while(TRUE) {
     
     # Load initial program dataset ("Full" dataset) with column check for data integrity
     
-    DATA.unfiltered <- read.csv("data_files\\full_data.csv")
+    DATA.unfiltered <- read.csv("data_files\\full_data_PARL.csv")
     
     read.csv("parameters/required_columns_full_data.txt") %>%
       unlist() %>%
       as.vector() %>%
       UTILITY.columncheck(DATA.unfiltered, TRUE)
     
-    cat("Using default dataset \"full_data.csv\"\n")
+    cat("Using default dataset \"full_data_PARL.csv\"\n")
     
   } else if (default_file_decision == "N") {
     
@@ -1408,7 +1417,7 @@ UTILITY.heatmap_helper("Lucena et. al. GAMMA Adj-R2--FIL", "image_output\\heatma
 UTILITY.heatmap_helper("Lucena et. al. GAMMA SBC--UNF", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "SBC", DATA.unfiltered, "LUCENA et al Comparisons - GAMMA SBC - UNF.csv", "table_output\\LUCENA", "LUCENA et al GAMMA SBC Comparison - UNF", "Relative to Model")
 UTILITY.heatmap_helper("Lucena et. al. GAMMA SBC--FIL", "image_output\\heatmaps\\LUCENA", DATA.LUCENA_models_and_abbrs.GAMMA, "SBC", DATA.filtered,   "LUCENA et al Comparisons - GAMMA SBC - FIL.csv", "table_output\\LUCENA", "LUCENA et al GAMMA SBC Comparison - FIL", "Relative to Model")
 
-# Prior Work - COLOGGERO & PARRERA --------------- TODO
+# Prior Work - COLOGGERO & PARRERA ---------------
 
 cat("Generating Cologgero & Parrera Comparison Heatmaps...\n")
 
@@ -1421,7 +1430,7 @@ UTILITY.heatmap_helper("Cologgero & Parrera Adj-R2--FIL", "image_output\\heatmap
 UTILITY.heatmap_helper("Cologgero & Parrera SBC--UNF", "image_output\\heatmaps\\COLOGGERO_PARRERA", DATA.COLOGGERO_PARRERA_models_and_abbrs, "SBC", DATA.unfiltered,   "Cologgero & Parrera Comparisons - SBC - UNF.csv", "table_output\\COLOGGERO_PARRERA", "COLOGGERO & PARRERA SBC Comparison - UNF", "Relative to Model")
 UTILITY.heatmap_helper("Cologgero & Parrera SBC--FIL", "image_output\\heatmaps\\COLOGGERO_PARRERA", DATA.COLOGGERO_PARRERA_models_and_abbrs, "SBC", DATA.filtered,   "Cologgero & Parrera Comparisons - SBC - FIL.csv", "table_output\\COLOGGERO_PARRERA", "COLOGGERO & PARRERA SBC Comparison - FIL", "Relative to Model")
 
-# Prior Work - DE CORTAZAR & NOBEL --------------- TODO
+# Prior Work - DE CORTAZAR & NOBEL ---------------
 
 cat("Generating de Cortazar & Nobel Comparison Heatmaps...\n")
 
@@ -1468,7 +1477,6 @@ UTILITY.heatmap_helper("Inglese et. al. SBC--FIL", "image_output\\heatmaps\\INGL
 UTILITY.nonlinear_model_SILVA_bolton <- function(source_data) {
   
   filtered_data=source_data%>%filter(Area != "NA")
-  # print(nrow(filtered_data))
   
   SILVA_hw <- function(data) {
     return(nls(data=data, "Area~a*(1-exp(b*height*width))/-b", start=list(a=100,b=0.001)))
@@ -1485,7 +1493,6 @@ UTILITY.nonlinear_model_SILVA_bolton <- function(source_data) {
     depvar = as.character(formula(model))[2]
     actu_values = data[[depvar]]
     r2 = 1-(sum((actu_values - pred_values)^2)/sum((actu_values - mean(actu_values))^2))
-    print(r2)
     return(r2)
   }
   
@@ -1501,14 +1508,10 @@ UTILITY.nonlinear_model_SILVA_bolton <- function(source_data) {
   )
   
   for (acc in DATA.possible_accessions) {
-    print(acc)
-    #print(approx_r2_nonlinear(filtered_data, SILVA_hw_model))
     data_acc = filtered_data %>% filter(accession == acc)
     SILVA_hw_df   %<>% add_row(accession = as.character(acc), R2 = approx_r2_nonlinear(data_acc, SILVA_hw(data_acc)),   SBC = BIC(SILVA_hw(data_acc)))
     SILVA_peri_df %<>% add_row(accession = as.character(acc), R2 = approx_r2_nonlinear(data_acc, SILVA_peri(data_acc)), SBC = BIC(SILVA_peri(data_acc)))
   }
-  print(SILVA_hw_df)
-  print(SILVA_peri_df)
 }
 
 UTILITY.nonlinear_model_SILVA_bolton(DATA.unfiltered)
